@@ -2,10 +2,10 @@ function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, label)
 subjectfolder=subjectfolder_in;
 Load_Dicom_Moco
 if raw == 1
-    folder = sprintf('DCE_Raw/%s', label);
+    folder = ['DCE_Raw' filesep label];
     mkdir(fullfile(subjectfolder, folder));
 else
-    folder = sprintf('DCE/%s', label);
+    folder = ['DCE' filesep label];
     mkdir(fullfile(subjectfolder, folder));
     
 end
@@ -16,19 +16,19 @@ timein=timeino_moco-min(timeino_moco);
 
 
 %% Image registration
+% since we have already performed the registration, no need of this
 clear PostT1Reg
 [optimizer,metric] = imregconfig('multimodal');
 fixed=double(DataPre.img);
 %fixed=double(DataPost(length(DataPost)).img);
-for n=1:length(DataPost_moco)
-    moving=double(DataPost_moco(n).img);
-    PostT1(:,:,n) = moving;
-    PostT1Rego(:,:,n) = double(imregister(moving,fixed,'affine',optimizer,metric));
+% for n=1:length(DataPost_moco)
+%     moving=double(DataPost_moco(n).img);
+%     PostT1(:,:,n) = moving;
+%     PostT1Rego(:,:,n) = double(imregister(moving,fixed,'affine',optimizer,metric));
+% end
+for n = 1:length(DataPost_moco)
+    PostT1Rego(:,:,n) = double(DataPost_moco(n).img);
 end
-
-%% Nonrigid image registration
-
-
 
 %% Sort time and image
 [timesort,To]=sort(timein);

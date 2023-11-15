@@ -1,6 +1,6 @@
 
 timepoints=uint16(ceil(time(2:end)/60))
-imagedir=[subjectfolder,'/', folder, '_MOCO/T',num2str(timepoints),'min/Images'];
+imagedir=[subjectfolder filesep folder, '_MOCO' filesep 'T', num2str(timepoints),'min' filesep 'Images'];
 
 
 dicominfo=DataPost(1).info;
@@ -115,12 +115,12 @@ switch inputname(1)
         Dicomtimearray{t}=tempT;
        end
        Dicomtimearray
-    mat2dicom_DCE_sim(var,[imdir,'/',Name,'/'],true,dicominfo,Dicomtimearray);
-    disp([Name,' is saved as ',imdir,'/',Name])
+    mat2dicom_DCE_sim(var,[imdir filesep Name filesep],true,dicominfo,Dicomtimearray);
+    disp([Name,' is saved as ',imdir filesep Name])
     SeriesNum=SeriesNum+1; 
     otherwise
-    mat2dicom_DCE(var,[imdir,'/',Name,'/'],true,dicominfo);
-    disp([Name,' is saved as ',imdir,'/',Name])
+    mat2dicom_DCE(var,[imdir filesep Name filesep],true,dicominfo);
+    disp([Name,' is saved as ',imdir filesep,Name])
     SeriesNum=SeriesNum+1;
 end
 
