@@ -28,7 +28,11 @@ for n=1:length(listPre)
 end
 %%
 % subjectfolder_in/registration/CE4/single_exp/stage2/T1_2MINPOSTCE4_MAP_T1_Mona
-PostconmocoFoldername = fullfile(subjectfolder_in, 'registration', label, 'single_exp', 'stage2');
+if raw == 1
+    PostconmocoFoldername = fullfile(subjectfolder_in, 'registration', label, 'single_exp', 'stage1');
+else
+    PostconmocoFoldername = fullfile(subjectfolder_in, 'registration', label, 'single_exp', 'stage2');
+end
 if exist(PostconmocoFoldername,'dir')
   
     listPost = natsortfiles(dir(fullfile(PostconmocoFoldername, '*T1*')));
