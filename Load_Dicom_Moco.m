@@ -20,12 +20,7 @@ for n=1:length(listPost)
     timeino(n)=str2num(timeinstr{n}(1:2))*60*60+str2num(timeinstr{n}(3:4))*60+str2num(timeinstr{n}(5:end));%s
 end
 
-%%
-listPre = natsortfiles(dir(fullfile(PreconFoldername, sprintf('*%s*', label))));
-for n=1:length(listPre)
-    disp(sprintf("Load the pre contrast files: %s", fullfile(listPre(n).folder, listPre(n).name)))
-    DataPre(n)=loaddicom(fullfile(listPre(n).folder, listPre(n).name));
-end
+
 %%
 % subjectfolder_in/registration/CE4/single_exp/stage2/T1_2MINPOSTCE4_MAP_T1_Mona
 if raw == 1
@@ -35,7 +30,7 @@ else
 end
 if exist(PostconmocoFoldername,'dir')
   
-    listPost = natsortfiles(dir(fullfile(PostconmocoFoldername, '*T1*')));
+    listPost = natsortfiles(dir(fullfile(PostconmocoFoldername, '*POST*')));
     for n=1:length(listPost)
         disp(sprintf("Load the post contrast motion corrected files: %s", fullfile(listPost(n).folder, listPost(n).name)))
         DataPost_moco(n) = loaddicom(fullfile(listPost(n).folder, listPost(n).name));
@@ -43,6 +38,13 @@ if exist(PostconmocoFoldername,'dir')
         timeino_moco(n)=str2num(timeinstr_moco{n}(1:2))*60*60+...
             str2num(timeinstr_moco{n}(3:4))*60+str2num(timeinstr_moco{n}(5:end));%s
     end
+end
+
+%%
+listPre = natsortfiles(dir(fullfile(PostconmocoFoldername, '*PRE*')));
+for n=1:length(listPre)
+    disp(sprintf("Load the pre contrast files: %s", fullfile(listPre(n).folder, listPre(n).name)))
+    DataPre(n)=loaddicom(fullfile(listPre(n).folder, listPre(n).name));
 end
 %%
 function data = loaddicom(path)

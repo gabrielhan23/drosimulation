@@ -44,7 +44,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,end), [100 , 500]);
+figure;imagesc(PostT1Rego(:,:,end), [100 , 2000]);
 title(['blood pool'])
 Blood=roipoly;
 
@@ -83,9 +83,9 @@ HeartMask=HeartMask.*~isnan(HeartMask);
 HeartMask=HeartMask>0;
 
 % Mona: dilate the blood pool region
-se = strel('square',10);
-Blood = imdilate(Blood, se);
-figure, imagesc(Blood)
+% se = strel('square',10);
+% Blood = imdilate(Blood, se);
+% figure, imagesc(Blood)
 Blood=Blood.*(min(dR1,[],3)>=0).*(max(dR1,[],3)<Inf);
 Blood=Blood.*~isnan(Blood);
 
