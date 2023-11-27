@@ -41,7 +41,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,end), [100 , 500]);
+figure;imagesc(PostT1Rego(:,:,end), [100 , 2000]);
 title(['blood pool'])
 Blood=roipoly;
 
@@ -80,9 +80,9 @@ HeartMask=HeartMask.*~isnan(HeartMask);
 HeartMask=HeartMask>0;
 
 % Mona: dilate the blood pool region
-se = strel('square',10);
-Blood = imdilate(Blood, se);
-figure, imagesc(Blood)
+% se = strel('square',10);
+% Blood = imdilate(Blood, se);
+% figure, imagesc(Blood)
 Blood=Blood.*(min(dR1,[],3)>=0).*(max(dR1,[],3)<Inf);
 Blood=Blood.*~isnan(Blood);
 
@@ -471,94 +471,7 @@ subplot(3,2,3);imagesc(ve_cxmmix);axis equal;title(['ve_cxmmix Con#=T',num2str(t
 subplot(3,2,4);imagesc(vp_cxmmix);axis equal;title(['vp_cxmmix Con#=T',num2str(timepoints),'min']);caxis([0 10]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
 
 subplot(3,2,5);imagesc(Rsq_cxmmix);axis equal;title(['Rsq_cxm Con#=T',num2str(timepoints),'min']);caxis([0 1]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-%%
-%{
-figure;title(['T',num2str(timepoints),'min'])
-subplot(5,2,1);imagesc(tek_Ktrans);axis equal;title(['Ktrans Con#=T',num2str(timepoints),'min']);caxis([0 0.5]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,2);imagesc(tek_Kep);axis equal;title(['Kep Con#=',num2str(length(fitpointind))]);caxis([0 0.015]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,3);imagesc(tek_Vp);axis equal;title(['Vp Con#=',num2str(length(fitpointind))]);caxis([0 100]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,4);imagesc(tek_Ve);axis equal;title(['Ve Con#=',num2str(length(fitpointind))]);caxis([0 100]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,5);imagesc(tek_Rsq);axis equal;title(['Rsq Con#=',num2str(length(fitpointind))]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
 
-subplot(5,2,6);imagesc(F_cxm);axis equal;title(['F Con#=',num2str(length(fitpointind))]);caxis([0 1]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,7);imagesc(vp_cxm);axis equal;title(['vp Con#=',num2str(length(fitpointind))]);caxis([0 50]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,8);imagesc(PS_cxm);axis equal;title(['PS Con#=',num2str(length(fitpointind))]);caxis([-1 1]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-%figure;imagesc(fitresultsDCE(:,:,1)./fitresultsDCE(:,:,2).*HeartMask);axis equal;title(['Ve Con#=',num2str(length(fitpointind))])
-subplot(5,2,9);imagesc(ve_cxm);axis equal;title(['ve Con#=',num2str(length(fitpointind))]);caxis([0 100]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-subplot(5,2,10);imagesc(Rsq_cxm);axis equal;title(['Rsq Con#=',num2str(length(fitpointind))]);xlim([1 size(fitresultsDCEcxm,1)]);ylim([1 size(fitresultsDCEcxm,2)]);
-saveas(gcf,[subjectfolder,'\DCE\DCEmaps_T',num2str(timepoints),'min.png'])
-saveas(gcf,[subjectfolder,'\DCE\DCEmaps_T',num2str(timepoints),'min.fig'])
-%}
-% temp4=fitresultsDCEcxm(:,:,4);
-% temp3=fitresultsDCEcxm(:,:,3);
-% temp2=fitresultsDCEcxm(:,:,2);
-% temp1=fitresultsDCEcxm(:,:,1);
-% figure;scatter3(temp1(:),temp2(:),temp3(:),'o')
-% figure;scatter3(temp1(:),temp3(:),temp4(:),'o')
-%% Scatterplot
-%{
-Scatterinput(:,:,1)=tek_Ktrans;
-Scatterinput(:,:,2)=tek_Kep;
-Scatterinput(:,:,3)=tek_Vp;
-DCE_Scatterplot(Scatterinput,RemoteMask,MIMask,MVOMask)
-title(['Scatter Con#=',num2str(length(fitpointind))])
-xlabel('etk_Ktrans') 
-ylabel('etk_Kep') 
-zlabel('etk_Vp')
-legend({'Remote','MI','MVO'})
-saveas(gcf,[subjectfolder,'\DCE\DCEmaps_T',num2str(timepoints),'min_scatterETK.fig'])
-
-Scatterinput(:,:,1)=F_cxm;
-Scatterinput(:,:,2)=vp_cxm;
-Scatterinput(:,:,3)=PS_cxm;
-DCE_Scatterplot(Scatterinput,RemoteMask,MIMask,MVOMask)
-title(['Scatter Con#=',num2str(length(fitpointind))])
-xlabel('cxm_F') 
-ylabel('cxm_Vp') 
-zlabel('cxm_PS')
-legend({'Remote','MI','MVO'})
-saveas(gcf,[subjectfolder,'\DCE\DCEmaps_T',num2str(timepoints),'min_scatterCXM1.fig'])
-
-Scatterinput(:,:,1)=F_cxm;
-Scatterinput(:,:,2)=vp_cxm;
-Scatterinput(:,:,3)=ve_cxm;
-DCE_Scatterplot(Scatterinput,RemoteMask,MIMask,MVOMask)
-title(['Scatter Con#=',num2str(length(fitpointind))])
-xlabel('cxm_F') 
-ylabel('cxm_Vp') 
-zlabel('cxm_Ve')
-legend({'Remote','MI','MVO'})
-saveas(gcf,[subjectfolder,'\DCE\DCEmaps_T',num2str(timepoints),'min_scatterCXM2.fig'])
-%}
-
-%% DCE fit tofts
-%Parameters for starting 1min
-%{
-x0=[0.1 0.01 0];
-lb=zeros(3,1);
-ub=[2 2 10];
-%%%%
-clear fitresultsvectorDEC;
-for c=1:sum(HeartMask(:))
-   sigin=Ctoi(c,:);
-   tempfitDCE= fitdcemri_etk(sigin',Cp',time',x0,lb,ub,'Tofts');
-   
-   fitresultsvectorDEC(c,:)=tempfitDCE;
-   %results=a*exp(-bt)+d*exp(-et) and gof
-end
-for n=1:3;
-    temp=zeros(size(fixed));
-    temp(HeartMask)=fitresultsvectorDEC(:,n);
-    fitresultsDCE(:,:,n)=temp;
-end
-
-figure;imagesc(fitresultsDCE(:,:,1));axis equal;title('Ktrans');caxis([0 1])
-figure;imagesc(fitresultsDCE(:,:,2));axis equal;title('Kep');caxis([0 0.01])
-figure;imagesc(fitresultsDCE(:,:,3));axis equal;title('Toft Rsq')
- temp2=fitresultsDCE(:,:,2);
-temp1=fitresultsDCE(:,:,1);
-figure;plot(temp1(:),temp2(:),'o')
-%}
 
 %% ECV
 Posttemp=PostT1Reg(:,:,find(abs(time-15*60)==min(abs(time-15*60))));
@@ -566,39 +479,25 @@ ECV=(100-40)*(1./Posttemp-1./fixed)/(mean(1./Posttemp(Blood))-mean(1./fixed(Bloo
 %figure;imagesc(ECV.*HeartMask);title(['ECV',num2str(length(fitpointind))]);axis equal;caxis([20 100])
 
 %%
-SimLate_R1
-
+try
+    SimLate_R1
+    simLateR1cxmmix=simLateR1cxm;
+    MVOmask_sim=repmat(MVOmask,[1 1 30]);
+    simLateR1cxmmix(MVOmask_sim)=simLateR1etk(MVOmask_sim);
+    BPmask_sim=repmat(BPmask,[1 1 30]);
+    
+    simLateR1cxmmix(BPmask_sim)==simLateR1etk(BPmask_sim);
+catch
+    disp("The SimLate fitting failed")
+    simLateR1cxmmix = 0;
+    simLateR1etk = 0;
+    simLateR1cxm = 0;
+    simLateR1cxm_Masked = 0;
+end
 %mixed
-simLateR1cxmmix=simLateR1cxm;
-MVOmask_sim=repmat(MVOmask,[1 1 30]);
-simLateR1cxmmix(MVOmask_sim)=simLateR1etk(MVOmask_sim);
-BPmask_sim=repmat(BPmask,[1 1 30]);
 
-simLateR1cxmmix(BPmask_sim)==simLateR1etk(BPmask_sim);
 
-%% Clustering
-%{
-clear ktemp
-for n=1:4;
-    temp=fitresultsDCEcxm(:,:,n);
-    ktemp(n,:)=temp(HeartMask);%/max(temp(HeartMask));
-end
-[idx,C]=(fitresultsDCEcxm,4);
-%[idx,C]=kmeans(ktemp',4);
-idximcxm=zeros(size(temp));
-idximcxm(HeartMask)=idx;
-figure;imagesc(idximcxm);axis equal
-%%
-clear ktemp
-for n=1:3;
-    temp=fitresultsDCEetk(:,:,n);
-    ktemp(n,:)=temp(HeartMask)/max(temp(HeartMask));
-end
-[idx,C]=kmeans(ktemp',4);
-idximetk=zeros(size(temp));
-idximetk(HeartMask)=idx;
-figure;imagesc(idximetk);axis equal
-%}
+
 %% Blood pool mask from CXM f maps
 % use remote F value to perform F map thresholding mean+5SD.
 Remote_Fmean=mean(F_cxm(RemoteMask));
