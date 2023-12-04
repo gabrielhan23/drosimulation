@@ -22,9 +22,9 @@ for n = 1:counter,
        end
 
 
-            
-                I = dicomread(targetfile);
-                   dicomwrite(I,targetfile,info)
+%             
+%                 I = dicomread(targetfile);
+%                    dicomwrite(I,targetfile,info)
         
     end
 end
