@@ -479,7 +479,7 @@ ECV=(100-40)*(1./Posttemp-1./fixed)/(mean(1./Posttemp(Blood))-mean(1./fixed(Bloo
 %figure;imagesc(ECV.*HeartMask);title(['ECV',num2str(length(fitpointind))]);axis equal;caxis([20 100])
 
 %%
-try
+% try
     SimLate_R1
     simLateR1cxmmix=simLateR1cxm;
     MVOmask_sim=repmat(MVOmask,[1 1 30]);
@@ -487,13 +487,13 @@ try
     BPmask_sim=repmat(BPmask,[1 1 30]);
     
     simLateR1cxmmix(BPmask_sim)==simLateR1etk(BPmask_sim);
-catch
-    disp("The SimLate fitting failed")
-    simLateR1cxmmix = 0;
-    simLateR1etk = 0;
-    simLateR1cxm = 0;
-    simLateR1cxm_Masked = 0;
-end
+% catch
+%     disp("The SimLate fitting failed")
+%     simLateR1cxmmix = 0;
+%     simLateR1etk = 0;
+%     simLateR1cxm = 0;
+%     simLateR1cxm_Masked = 0;
+% end
 %mixed
 
 
