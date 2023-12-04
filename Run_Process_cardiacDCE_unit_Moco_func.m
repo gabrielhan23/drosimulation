@@ -18,11 +18,11 @@ timein=timeino_moco-min(timeino_moco);
 %% Image registration
 % since we have already performed the registration, no need of this
 clear PostT1Reg
-[optimizer,metric] = imregconfig('multimodal');
-moving=double(DataPre.img);
-fixed = double(DataPost_moco(n).img);
-corrected_pre = double(imregister(moving,fixed,'affine',optimizer,metric));
-DataPre.img = corrected_pre;
+% [optimizer,metric] = imregconfig('multimodal');
+fixed = double(DataPre.img);
+moving = double(DataPost_moco(1).img);
+% corrected_pre = double(imregister(moving,fixed,'affine',optimizer,metric));
+% DataPre.img = corrected_pre;
 for n = 1:length(DataPost_moco)
     PostT1Rego(:,:,n) = double(DataPost_moco(n).img);
 end
@@ -41,7 +41,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,end), [100 , 2000]);
+figure;imagesc(PostT1Rego(:,:,1), [100 , 2000]);
 title(['blood pool'])
 Blood=roipoly;
 

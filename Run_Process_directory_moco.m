@@ -1,7 +1,7 @@
 clear all
 close hidden all
-
-Rootfolder = '/Users/mona/Library/CloudStorage/GoogleDrive-xinqili16@g.ucla.edu/My Drive/Data/Registration/patient_registration_LiTing_Mona';
+addpath(genpath('.'))
+Rootfolder = 'G:\My Drive\Data\Registration\patient_registration_LiTing_Mona';
 
 subject = '015';
 slice = 'CE4';

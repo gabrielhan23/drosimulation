@@ -8,7 +8,7 @@ end
 
 
 PreconFoldername = fullfile(subjectfolder, 'PreconT1');
-%%
+
 % Mona: change the postcon folder
 PostconFoldername = fullfile(subjectfolder, 'PostconT1');
 
@@ -34,25 +34,29 @@ if exist(PostconmocoFoldername,'dir')
     for n=1:length(listPost)
         disp(sprintf("Load the post contrast motion corrected files: %s", fullfile(listPost(n).folder, listPost(n).name)))
         DataPost_moco(n) = loaddicom(fullfile(listPost(n).folder, listPost(n).name));
-        timeinstr_moco{n}=DataPost_moco(n).info.AcquisitionTime;
-        timeino_moco(n)=str2num(timeinstr_moco{n}(1:2))*60*60+...
-            str2num(timeinstr_moco{n}(3:4))*60+str2num(timeinstr_moco{n}(5:end));%s
+%         timeinstr_moco{n}=DataPost_moco(n).info.AcquisitionTime;
+%         timeino_moco(n)=str2num(timeinstr_moco{n}(1:2))*60*60+...
+%             str2num(timeinstr_moco{n}(3:4))*60+str2num(timeinstr_moco{n}(5:end));%s
     end
+    timeino_moco = timeino;
 end
 
-%%
 listPre = natsortfiles(dir(fullfile(PostconmocoFoldername, '*PRE*')));
 for n=1:length(listPre)
     disp(sprintf("Load the pre contrast files: %s", fullfile(listPre(n).folder, listPre(n).name)))
     DataPre(n)=loaddicom(fullfile(listPre(n).folder, listPre(n).name));
 end
+
 %%
 function data = loaddicom(path)
 % load the dicom files
-list=dir(fullfile(path, '*.dcm'));
+list=dir(fullfile(path, 'T1_*.nii'));
 
 % Mona: change due to exist of .DS_Store
-data.img=dicomread(fullfile(list(end).folder, list(end).name));
-data.info=dicominfo(fullfile(list(end).folder, list(end).name));
-
+data.img=niftiread(fullfile(list(end).folder, list(end).name));
+data.img = data.img';
+list=dir(fullfile(path, 'T1_*.dcm'));
+if length(list) > 0
+    data.info=dicominfo(fullfile(list(end).folder, list(end).name));
+end
 end
