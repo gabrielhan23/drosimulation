@@ -1,10 +1,10 @@
 %% load Dicom
 % Mona: change the load of data using index.
 
-roi_path = fullfile(subjectfolder, 'DCE', label, 'ROI');
-if exist(roi_path,'dir')
-    load(fullfile(roi_path, 'ROI.mat'))
-end
+% roi_path = fullfile(subjectfolder, 'DCE', label, 'ROI');
+% if exist(roi_path,'dir')
+%     load(fullfile(roi_path, 'ROI.mat'))
+% end
 
 
 PreconFoldername = fullfile(subjectfolder, 'PreconT1');
@@ -50,11 +50,12 @@ end
 %%
 function data = loaddicom(path)
 % load the dicom files
-list=dir(fullfile(path, 'T1_*.nii'));
+list=dir(fullfile(path, '*T1.nii'));
 
 % Mona: change due to exist of .DS_Store
 data.img=niftiread(fullfile(list(end).folder, list(end).name));
 data.img = data.img';
+disp(size(data.img))
 list=dir(fullfile(path, 'T1_*.dcm'));
 if length(list) > 0
     data.info=dicominfo(fullfile(list(end).folder, list(end).name));
