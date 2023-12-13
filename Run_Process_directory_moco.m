@@ -5,7 +5,7 @@ Rootfolder = '/Users/mona/Library/CloudStorage/GoogleDrive-xinqili16@g.ucla.edu/
 
 subject = '075';
 slice = 'CE4';
-raw = 1;
+raw = 0;
 subjectfolder_in = fullfile(Rootfolder, subject);
 
 PostconmocoFoldername = fullfile(subjectfolder_in, "registration");
