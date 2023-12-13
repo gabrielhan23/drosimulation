@@ -1,9 +1,9 @@
 clear all
 close hidden all
 addpath(genpath('.'))
-Rootfolder = 'G:\My Drive\Data\Registration\patient_registration_LiTing_Mona';
+Rootfolder = '/Users/mona/Library/CloudStorage/GoogleDrive-xinqili16@g.ucla.edu/My Drive/Data/Registration/patient_registration_LiTing_Mona';
 
-subject = '015';
+subject = '075';
 slice = 'CE4';
 raw = 1;
 subjectfolder_in = fullfile(Rootfolder, subject);
