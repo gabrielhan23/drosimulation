@@ -41,7 +41,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,1), [100 , 2000]);
+figure;imagesc(PostT1Rego(:,:,1), [0 , 1000]);
 title(['blood pool'])
 Blood=roipoly;
 
