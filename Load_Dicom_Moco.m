@@ -1,6 +1,9 @@
 %% load Dicom
 % Mona: change the load of data using index.
 
+% add the aciquisition time
+load(fullfile(subjectfolder, 'acquisitionTime.mat'))
+
 roi_path = fullfile(subjectfolder, 'DCE', label, 'ROI');
 if exist(roi_path,'dir')
     load(fullfile(roi_path, 'ROI.mat'))
@@ -16,8 +19,16 @@ listPost = natsortfiles(dir(fullfile(PostconFoldername, sprintf('*%s*', label)))
 for n=1:length(listPost)
     disp(sprintf("Load the post contrast files: %s", fullfile(listPost(n).folder, listPost(n).name)))
     DataPost(n)=loaddicom(fullfile(listPost(n).folder, listPost(n).name));
-    timeinstr{n}=DataPost(n).info.AcquisitionTime;
-    timeino(n)=str2num(timeinstr{n}(1:2))*60*60+str2num(timeinstr{n}(3:4))*60+str2num(timeinstr{n}(5:end));%s
+
+    
+    name = listPost(n).name;
+    info_folder = fullfile(subjectfolder, extractAfter(extractBefore(name, '_T1MAP'), [subject, '_']));
+    orig_dicoms = dir(info_folder);
+    info = dicominfo(fullfile(orig_dicoms(end).folder, orig_dicoms(end).name));
+    DataPost(n).info = info;
+%     timeinstr{n}=DataPost(n).info.AcquisitionTime;
+%     timeino(n)=str2num(timeinstr{n}(1:2))*60*60+str2num(timeinstr{n}(3:4))*60+str2num(timeinstr{n}(5:end));%s
+    timeino(n) = timeino_map(listPost(n).name);
 end
 
 
@@ -50,13 +61,15 @@ end
 %%
 function data = loaddicom(path)
 % load the dicom files
-list=dir(fullfile(path, 'T1_*.nii'));
+list=dir(fullfile(path, '*T1*.nii'));
 
 % Mona: change due to exist of .DS_Store
 data.img=niftiread(fullfile(list(end).folder, list(end).name));
 data.img = data.img';
-list=dir(fullfile(path, 'T1_*.dcm'));
-if length(list) > 0
+list=dir(fullfile(path, '*T1*.dcm'));
+if ~isempty(list)
     data.info=dicominfo(fullfile(list(end).folder, list(end).name));
+else
+    data.info = [];
 end
 end

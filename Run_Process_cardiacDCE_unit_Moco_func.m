@@ -1,4 +1,4 @@
-function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, label)  
+function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, label, subject)  
 subjectfolder=subjectfolder_in;
 Load_Dicom_Moco
 if raw == 1
