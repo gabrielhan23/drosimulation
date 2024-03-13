@@ -1,14 +1,11 @@
-function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, label, subject)  
-subjectfolder=subjectfolder_in;
+function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder, basefolder, raw, label, subject)  
+folder = ['DCE_' raw filesep label];
+
+outputfolder = fullfile(subjectfolder, folder);
+mkdir(outputfolder);
+
 Load_Dicom_Moco
-if raw == 1
-    folder = ['DCE_Raw' filesep label];
-    mkdir(fullfile(subjectfolder, folder));
-else
-    folder = ['DCE' filesep label];
-    mkdir(fullfile(subjectfolder, folder));
-    
-end
+
 
 SeriesNum=0;
 %% Assign scan time
@@ -41,7 +38,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,1), [0 , 1000]);
+figure;imagesc(PostT1Rego(:,:,2), [100 , 1000]);
 title(['blood pool'])
 Blood=roipoly;
 
@@ -66,8 +63,8 @@ MIMask=roipoly;
 title(['Remote'])
 RemoteMask=roipoly;
 
-mkdir(fullfile(subjectfolder, 'DCE', label, 'ROI'))
-save(fullfile(subjectfolder, 'DCE', label, 'ROI', 'ROI.mat'),'Blood', 'HeartMask', 'LVendo', 'Myomask', 'MIMask', 'RemoteMask')
+mkdir(fullfile(subjectfolder, 'MASK'))
+save(fullfile(subjectfolder, 'MASK', [label, '_ROI.mat']),'Blood', 'HeartMask', 'LVendo', 'Myomask', 'MIMask', 'RemoteMask')
 end
 
 %% mask avoid singularity from registration error

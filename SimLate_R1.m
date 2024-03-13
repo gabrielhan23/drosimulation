@@ -3,7 +3,13 @@ clear simLateR1vectorDEC simLateR1cxm simLateR1etk simLateR1cxmD
 tempsimLateR1vectorDEC=zeros(size(fixed));
 %fit AIF
 %[tempCpexp2,tempfitresultsvector]=fit(time(2:end)',Cp(2:end)','exp2');%Fit Cp
-[tempCpexp2,tempfitresultsvector]=fit([time(2:end)'; 6*60*60],[Cp(2:end)';0],'exp2')%Fit Cp adding 0 as the last
+% Mona: add the starting point
+try
+    [tempCpexp2,tempfitresultsvector]=fit([time(2:end)'; 6*60*60],[Cp(2:end)';0],'exp2')
+catch
+    disp('The fitting failed, try add starting points')
+    [tempCpexp2,tempfitresultsvector]=fit([time(2:end)'; 6*60*60],[Cp(2:end)';0],'exp2', 'StartPoint',[0,0,0,0])%Fit Cp adding 0 as the last
+end
 timesim=0:60:1800;
 Cpsim=tempCpexp2(timesim);%Cp at 1000sec
 Cpsim(1)=0;

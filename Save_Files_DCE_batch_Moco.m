@@ -1,12 +1,9 @@
 
 timepoints=uint16(ceil(time(2:end)/60))
-imagedir=[subjectfolder filesep folder, '_MOCO' filesep 'T', num2str(timepoints),'min' filesep 'Images'];
-
-
-dicominfo=DataPost(1).info;
+imagedir=[outputfolder filesep 'T', num2str(timepoints),'min' filesep 'Images'];
 
 mkdir(imagedir);
-
+dicominfo = DataPost_moco(1).info
 %%
 if SeriesNum<10
 SeriesNum=savedicom(ECV,imagedir,dicominfo,SeriesNum,['ECV'])
@@ -91,7 +88,7 @@ SeriesNum=savedicom(BloodMask_cxm,imagedir,dicominfo,SeriesNum,['BloodMask_cxm']
 
 %%
 
-save(fullfile(subjectfolder, 'DCE', label, ['workspace T',num2str(timepoints),'min']))
+save(fullfile(outputfolder, ['workspace T',num2str(timepoints),'min']))
 disp(['workspace is saved as ', fullfile(subjectfolder, 'DCE', label, ['workspace T',num2str(timepoints),'min'])])
 
 
