@@ -4,7 +4,7 @@
 % add the aciquisition time
 load(fullfile(subjectfolder, 'acquisitionTime.mat'))
 
-roi_path = fullfile(subjectfolder, 'MASK', [label, '_ROI.mat']);
+roi_path = fullfile(subjectfolder, 'MASK', [label(1:3), '_ROI.mat']);
 if exist(roi_path,'file')
     load(roi_path)
 end
