@@ -41,6 +41,9 @@ classdef CXM_bound
                 for i = 1:rows
                     for j = 1:cols
                         c = (i - 1) * cols + j;
+                        if i == 136 & j == 136
+                            disp('debug')
+                        end
                         if mask(i, j) == 1
                             if Rsqc(c) < 0.9
                                 sigin = myo_curves(:, i, j);
@@ -114,7 +117,7 @@ classdef CXM_bound
 
             if obj.debug
                 S.Display='iter-detailed';
-                S.PlotFcns=["optimplotstepsize", "optimplotx"];
+                % S.PlotFcns=["optimplotstepsize"];
                 S.OutputFcn = @outfun;
                 history.x = [];
             else
@@ -148,7 +151,7 @@ classdef CXM_bound
             % for debug use
             if obj.debug
                 disp(history.x)
-                figure('Position', [100, 300, 1200, 300]), plot(time, toi,'ko',times,obj.CXM_BOUND(B, [times, Cp]),'g-', time, Cp, 'ro')
+                figure('Position', [100, 300, 1200, 300]), plot(time, toi,'ko',time,obj.CXM_BOUND(B, [time, Cp]),'g-', time, Cp, 'ro')
                 legend('toi','Fitted exponential', 'aif')
                 text = sprintf('FS: %.3f\nPs: %.3f\nVp: %.3f\nVe: %.3f', B(1),B(2),B(3),B(4));
                 annotation('textbox',[.91 .4 .1 .3],'String',text,'FitBoxToText','on')
