@@ -72,7 +72,11 @@ classdef CXM_bound
                 fitQ = fitresultsDCEcxm(:, :, end);
                 maskadj = myo_mask.*(fitQ > 0);
                 f = sort(fitQ(maskadj == 1));
-                NityFivpercent = f(floor(sum(maskadj(:))*0.05)); % get the 95% R2
+                try
+                    NityFivpercent = f(max([(floor(sum(maskadj(:))*0.05)),1])); % get the 95% R2
+                catch
+                    NityFivpercent = 0;
+                end
                 fprintf("Iter %d ---- 95 percentage R2 in iter: %.3f\n", iter, NityFivpercent)
                 iter = iter + 1;
             end
