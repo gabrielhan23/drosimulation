@@ -1,14 +1,11 @@
-function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, label)  
-subjectfolder=subjectfolder_in;
+function []=Run_Process_cardiacDCE_unit_Moco_func(subjectfolder, basefolder, raw, label, subject)  
+folder = ['DCE_' raw filesep label];
+
+outputfolder = fullfile(subjectfolder, folder);
+mkdir(outputfolder);
+
 Load_Dicom_Moco
-if raw == 1
-    folder = ['DCE_Raw' filesep label];
-    mkdir(fullfile(subjectfolder, folder));
-else
-    folder = ['DCE' filesep label];
-    mkdir(fullfile(subjectfolder, folder));
-    
-end
+
 
 SeriesNum=0;
 %% Assign scan time
@@ -18,14 +15,11 @@ timein=timeino_moco-min(timeino_moco);
 %% Image registration
 % since we have already performed the registration, no need of this
 clear PostT1Reg
-[optimizer,metric] = imregconfig('multimodal');
-fixed=double(DataPre.img);
-%fixed=double(DataPost(length(DataPost)).img);
-% for n=1:length(DataPost_moco)
-%     moving=double(DataPost_moco(n).img);
-%     PostT1(:,:,n) = moving;
-%     PostT1Rego(:,:,n) = double(imregister(moving,fixed,'affine',optimizer,metric));
-% end
+% [optimizer,metric] = imregconfig('multimodal');
+fixed = double(DataPre.img);
+moving = double(DataPost_moco(1).img);
+% corrected_pre = double(imregister(moving,fixed,'affine',optimizer,metric));
+% DataPre.img = corrected_pre;
 for n = 1:length(DataPost_moco)
     PostT1Rego(:,:,n) = double(DataPost_moco(n).img);
 end
@@ -44,7 +38,7 @@ Gdcon=dR1./gdrelaxivity; %mM
 %% Draw Reference ROI
 
 if ~exist('Blood','var')
-figure;imagesc(PostT1Rego(:,:,end), [100 , 2000]);
+figure;imagesc(PostT1Rego(:,:,2), [100 , 1000]);
 title(['blood pool'])
 Blood=roipoly;
 
@@ -69,8 +63,8 @@ MIMask=roipoly;
 title(['Remote'])
 RemoteMask=roipoly;
 
-mkdir(fullfile(subjectfolder, 'DCE', label, 'ROI'))
-save(fullfile(subjectfolder, 'DCE', label, 'ROI', 'ROI.mat'),'Blood', 'HeartMask', 'LVendo', 'Myomask', 'MIMask', 'RemoteMask')
+mkdir(fullfile(subjectfolder, 'MASK'))
+save(fullfile(subjectfolder, 'MASK', [label, '_ROI.mat']),'Blood', 'HeartMask', 'LVendo', 'Myomask', 'MIMask', 'RemoteMask')
 end
 
 %% mask avoid singularity from registration error
@@ -482,7 +476,7 @@ ECV=(100-40)*(1./Posttemp-1./fixed)/(mean(1./Posttemp(Blood))-mean(1./fixed(Bloo
 %figure;imagesc(ECV.*HeartMask);title(['ECV',num2str(length(fitpointind))]);axis equal;caxis([20 100])
 
 %%
-try
+% try
     SimLate_R1
     simLateR1cxmmix=simLateR1cxm;
     MVOmask_sim=repmat(MVOmask,[1 1 30]);
@@ -490,13 +484,13 @@ try
     BPmask_sim=repmat(BPmask,[1 1 30]);
     
     simLateR1cxmmix(BPmask_sim)==simLateR1etk(BPmask_sim);
-catch
-    disp("The SimLate fitting failed")
-    simLateR1cxmmix = 0;
-    simLateR1etk = 0;
-    simLateR1cxm = 0;
-    simLateR1cxm_Masked = 0;
-end
+% catch
+%     disp("The SimLate fitting failed")
+%     simLateR1cxmmix = 0;
+%     simLateR1etk = 0;
+%     simLateR1cxm = 0;
+%     simLateR1cxm_Masked = 0;
+% end
 %mixed
 
 

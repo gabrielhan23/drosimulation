@@ -1,15 +1,17 @@
 clear all
 close hidden all
-
-Rootfolder = '/Users/mona/Library/CloudStorage/GoogleDrive-xinqili16@g.ucla.edu/My Drive/Data/Registration/patient_registration_LiTing_Mona';
-
-subject = '015';
-slice = 'CE4';
-raw = 1;
+addpath(genpath('.'))
+Rootfolder = '/Users/mona/Library/CloudStorage/Dropbox/0.MAC-SYNC/0.PROJECT/Registration/Data/Liting_patient/T1MAPTEST';
+Basefolder = '/Users/mona/Library/CloudStorage/Dropbox/0.MAC-SYNC/0.PROJECT/Registration/Data/Liting_patient/T1 maps for test ORIGINAL';
+subject = '031';
+slice = 'CE6_physical_model';
+raw = 'MULTILEVEL';
 subjectfolder_in = fullfile(Rootfolder, subject);
-
-PostconmocoFoldername = fullfile(subjectfolder_in, "registration");
+basefolder_in = fullfile(Basefolder, subject);
+PostconmocoFoldername = fullfile(subjectfolder_in, 'REGISTRATION', raw);
 % PostconmocoFoldername=[subjectfolder_in,'/PostconT1'];
+tips = 'TV';
 if exist(PostconmocoFoldername,'dir')    
-    Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, raw, slice)  
+    Run_Process_cardiacDCE_unit_Moco_func_TV(subjectfolder_in, basefolder_in, raw, slice, subject, tips);
+    % Run_Process_cardiacDCE_unit_Moco_func(subjectfolder_in, basefolder_in, raw, slice, subject) 
 end
