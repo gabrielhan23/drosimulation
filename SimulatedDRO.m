@@ -9,10 +9,30 @@ classdef SimulatedDRO
         t_intval (1, 1) {mustBeNumeric} = 0.02 % temporal resolution [min]
         t_end (1, 1) {mustBeNumeric} = 2 % end timepoints [min]
 
-        flow (1, 4) {mustBeNumeric} = [0.5, 1.0, 1.5, 2.0]
-        vp (1, 4) {mustBeNumeric} = [0.02, 0.05, 0.1, 0.2]
-        ve (1, 3) {mustBeNumeric} = [0.1, 0.2, 0.5]
-        ps (1, 3) {mustBeNumeric} = [0.5, 1.5, 2.5]
+        flow (1, 4) {mustBeNumeric} = [0.0010, 0.0013, 0.0015, 0.0017]
+        vp (1, 4) {mustBeNumeric} = [0.2, 0.3, 0.4, 0.5]
+        ve (1, 3) {mustBeNumeric} = [0.05, 0.1, 0.15]
+        ps (1, 3) {mustBeNumeric} = [0.001, 0.005, 0.01]
+
+        % parameters for gaussian kernal curve
+        B (1, 1) {mustBeNumeric} =  1.050 % mM
+        a1 (1, 1) {mustBeNumeric} = 0.809 % mM min
+        a2 (1, 1) {mustBeNumeric} = 0.330 % mM min
+        m1 (1, 1) {mustBeNumeric} = 0.1682 % min-1
+        m2 (1, 1) {mustBeNumeric} = 38.078 % min-1
+        sigma1 (1, 1) {mustBeNumeric} = 0.0563 % gaussian distribution
+        sigma2 (1, 1) {mustBeNumeric} = 0.132 % gaussian distribution
+        mu1 (1, 1) {mustBeNumeric} = 0.170 % gaussian distribution
+        mu2 (1, 1) {mustBeNumeric} = 0.365 % gaussian distribution
+        tc (1, 1) {mustBeNumeric} = 0.1483 % sigmod width and center
+
+        % parameters for dual exponential curve
+        D (1, 1) {mustBeNumeric} =  0.1 %0.1
+        dual_a1 (1, 1) {mustBeNumeric} = 8
+        dual_a2 (1, 1) {mustBeNumeric} = 3
+        dual_m1 (1, 1) {mustBeNumeric} = 0.5
+        dual_m2 (1, 1) {mustBeNumeric} = 0.01
+
 
     end
     methods
@@ -23,7 +43,9 @@ classdef SimulatedDRO
             timepoints = timepoints(1:end-1);
 
             % aif, arterial input function
-            aif = obj.f_GAMMA(10^5/3, timepoints);
+            % aif = obj.f_GAMMA(10^5/3, timepoints);
+            % aif = obj.DUAL_EXP(timepoints);
+            aif = obj.GAUSSIAN_EXP(timepoints);
 
             % set parameters
             flows = zeros(dims);
@@ -31,21 +53,21 @@ classdef SimulatedDRO
             ves = zeros(dims);
             pss = zeros(dims);
 
-            for i = 0:3
+            for i = 0:(length(obj.flow)-1)
                 flows(i*10+1:(i + 1)*10, :, :) = obj.flow(i+1);
             end
 
-            for i = 0:3
+            for i = 0:(length(obj.vp)-1)
                 for j = 0:2
                     vps(:, 10*(i + 4 * j)+1:10*(i + 1 + 4 * j), :) = obj.vp(i+1);
                 end
             end
             
-            for i = 0:2
-                ves(:, i*40+1:(i + 1)*40, :) = obj.ve(i+1);
+            for i = 0:(length(obj.ve)-1)
+                ves(:, i*(dims(2)/length(obj.ve))+1:(i + 1)*(dims(2)/length(obj.ve)), :) = obj.ve(i+1);
             end
             
-            for i = 0:2
+            for i = 0:(length(obj.ps)-1)
                 pss(:, :, i+1) = obj.ps(i+1);
             end
 
@@ -92,6 +114,21 @@ classdef SimulatedDRO
             gamma = (K * (time.^obj.alpha)) .* double(exp(-time/obj.beta));
         end
 
+        function [Cp] = GAUSSIAN_EXP(obj, time)
+            % G. J. M. Parker, etc "Experimentally-derived functional form for a population-averaged 
+            % hightemporal-resolution arterial input function for dynamic contrast-enhanced MRI,"
+            p1 = (obj.B .* exp(-obj.m1 .* time)) ./ (1 + exp(-obj.m2 .* (time - obj.tc)));
+            p2 = (obj.a1 / obj.sigma1 / sqrt(2 * pi)) .* exp(-((time - obj.mu1)./obj.sigma1.*sqrt(2)).^2);
+            p3 = (obj.a2 / obj.sigma2 / sqrt(2 * pi)) .* exp(-((time - obj.mu2)./obj.sigma2.*sqrt(2)).^2);
+            Cp = p1 + p2 + p3;
+        end
+
+        function [Cp] = DUAL_EXP(obj, time)
+            % "Cp(t) = D(a1e^(−m1t) + a2e^(−m2t))" ([Khalifa et al., 2014, p. 1243016]
+            Cp = obj.D .* (obj.dual_a1 .* exp(-obj.dual_m1 * time) + obj.dual_a2 .* exp(-obj.dual_m2 * time));
+            
+        end
+
         function [signal] = TWO_COMPONENT_EX_MODEL(obj, parameters, time, AIF)
             [f, vol_p, vol_e, PS] = deal(parameters{:});
             [tb, tp, te, km, k_p, E, delta] = obj.PHY2MODEL_PARAMS(f, vol_p, vol_e, PS);
@@ -117,7 +154,7 @@ classdef SimulatedDRO
         function Ctoi = CXM_BOUND(beta, params)
             % ---------------------------------------------------------------
             % Calculate the simulated Ctoi according to the given parameters
-            % and AIF in corresponding time, using the CXM_bound model.
+            % and AIF in corresponding time, using the CXM_bound model(2CXM).
             % /::INPUTS::\
             %     beta: {Flow, PS, Vp, Ve}, given parameters
             %     params: (time, Cp), e.g. size(100, 2), a column vector of time in minutes corresponding to Cp,

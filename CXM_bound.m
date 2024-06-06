@@ -1,11 +1,11 @@
 classdef CXM_bound
     properties
         debug = false
-        threshold (1, 1) {mustBeNumeric} = 0.75
-        iters (1, 1) {mustBeNumeric} = 5
-        x0(1, 4) {mustBeNumeric} = [0.5, 2, 0.1, 0.5] % F, PS, Vp, Ve
+        threshold (1, 1) {mustBeNumeric} = 0.85
+        iters (1, 1) {mustBeNumeric} = 1
+        x0(1, 4) {mustBeNumeric} = [0.01, 0.001, 0.1, 0.1] % F, PS, Vp, Ve
         lb(1, 4) {mustBeNumeric} = [0, 0, 0, 0]
-        ub(1, 4) {mustBeNumeric} = [3.0, 4.0, 0.24, 0.60]
+        ub(1, 4) {mustBeNumeric} = [0.5, 0.5, 0.5, 0.5]
         CMRmap = [0 0 0;.15 .15 .5;.3 .15 .75;.6 .2 .50;1 .25 .15;.9 .5 0;.9 .75 .1;.9 .9 .5;1 1 1];
     end
     methods
@@ -36,14 +36,12 @@ classdef CXM_bound
             x0c = repmat(obj.x0, [rows * cols, 1]);
             simulatedCXM = zeros(size(myo_curves));
             fitresultsDCEcxm = zeros(rows, cols, 6);
-            % while (NityFivpercent < obj.threshold && iter < obj.iters)
-            while (iter < obj.iters)
+            while (NityFivpercent < obj.threshold && iter < obj.iters)
+            % while (iter < obj.iters)
                 for i = 1:rows
                     for j = 1:cols
                         c = (i - 1) * cols + j;
-                        if i == 136 & j == 136
-                            disp('debug')
-                        end
+
                         if mask(i, j) == 1
                             if Rsqc(c) < 0.9
                                 sigin = myo_curves(:, i, j);
@@ -55,7 +53,7 @@ classdef CXM_bound
                                 tempfitDCE = obj.curve_fit(sigin, cp, time, x0c(c,:), obj.lb, obj.ub, 'cxm_bound');
                                 if tempfitDCE(end) > Rsqc(c)
                                     % fit success, update
-                                    simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time', aif']);
+                                    simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time, aif]);
                                     fitresultsDCEcxm(i, j, :) = tempfitDCE;
                                     Rsqc(c) = tempfitDCE(end);
                                 end
@@ -115,13 +113,14 @@ classdef CXM_bound
 
             S.Algorithm='trust-region-reflective';
             % S.TolFun=1e-3; S.TolX=1e-3;% RY change fitting threshold
-            S.TolFun=1e-10; S.TolX=1e-10;% RY change fitting threshold
+            S.TolFun=1e-6; S.TolX=1e-6;% RY change fitting threshold
             S.MaxIter=1000;
+            % step size
 
 
             if obj.debug
                 S.Display='iter-detailed';
-                % S.PlotFcns=["optimplotstepsize"];
+                S.PlotFcns=["optimplotstepsize"];
                 S.OutputFcn = @outfun;
                 history.x = [];
             else
@@ -213,6 +212,7 @@ classdef CXM_bound
             B = (M2 - c) / (M2 - M1);
             H = B * exp(-M1*time) + (1 - B) * exp(-M2*time);
             Ctoi = F * convolution(H, Cp);
+            % Ctoi = F * conv(H, Cp, 'same');
         end
 
         function [r2, rmse] = rsquare(y,f,varargin)

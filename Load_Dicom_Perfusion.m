@@ -37,10 +37,10 @@ end
 
 %% Load the AIF LR
 
-[V,spatial,dim] = dicomreadVolume(fullfile(subjectfolder, 'S6'));
+[V,spatial,dim] = dicomreadVolume(fullfile(subjectfolder, lr_label));
 
 
-files = natsortfiles(dir(fullfile(subjectfolder, 'S6', 'MR*')));
+files = natsortfiles(dir(fullfile(subjectfolder, lr_label, 'MR*')));
 
 assert(length(files) == size(V, 4), 'Loaded dicom volume and files mismatch')
 
@@ -53,7 +53,7 @@ for i = 1:size(V, 4)
     DataPost_aif_moco(i).info = dicominfo(fullfile(files(i).folder, files(i).name));
     
     % Load the extra as post contrast image, sample points
-    timeinstr = DataPost_moco(i).info.AcquisitionTime;
+    timeinstr = DataPost_aif_moco(i).info.AcquisitionTime;
     timeino_aif_moco(i)=str2num(timeinstr(1:2))*60*60+str2num(timeinstr(3:4))*60+str2num(timeinstr(5:end)); %s
 end
 
