@@ -50,10 +50,12 @@ classdef CXM_bound
                                 % sigin: ctoi, concentration within the heartmask
                                 % return: F, PS, Vp, Ve, rmse, R2
                                 % x0c, F, PS, Vp, Ve
-                                tempfitDCE = obj.curve_fit(sigin, cp, time, x0c(c,:), obj.lb, obj.ub, 'cxm_bound');
+                                % tempfitDCE = obj.curve_fit(sigin, cp, time, x0c(c,:), obj.lb, obj.ub, 'cxm_bound');
+                                tempfitDCE = obj.curve_fit(sigin, aif, time, x0c(c,:), obj.lb, obj.ub,'2cxm');
                                 if tempfitDCE(end) > Rsqc(c)
                                     % fit success, update
-                                    simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time, aif]);
+                                    % simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time, aif]);
+                                    simulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time', aif']);
                                     fitresultsDCEcxm(i, j, :) = tempfitDCE;
                                     Rsqc(c) = tempfitDCE(end);
                                 end
@@ -89,6 +91,7 @@ classdef CXM_bound
             x0 = varargin{4};
             lb = varargin{5};
             ub = varargin{6};
+            type = varargin{7};
 
             % Make sure all vectors are column, not row
             if size(toi,1) == 1
@@ -148,13 +151,20 @@ classdef CXM_bound
             end
 
             % Perform the fitting (the function "rrm" is in the nested functions below)
-            [B,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(@obj.CXM_BOUND, x0, [time, Cp], toi, lb, ub, S);
-            times = linspace(time(1),time(end))';
-
+            if strcmp(type, "cxm_bound")
+                [B,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(@obj.CXM_BOUND, x0, [time, Cp], toi, lb, ub, S);
+                times = linspace(time(1),time(end))';
+                calculated = obj.CXM_BOUND(B, [time, Cp])
+            else
+                AIF = Cp;
+                [B,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(@obj.TWO_COMPONENT_EX_MODEL, x0, [time, AIF], toi, lb, ub, S);
+                times = linspace(time(1),time(end))';
+                calculated = obj.TWO_COMPONENT_EX_MODEL(B, [time, AIF]);
+            end
             % for debug use
             if obj.debug
                 disp(history.x)
-                figure('Position', [100, 300, 1200, 300]), plot(time, toi,'ko',time,obj.CXM_BOUND(B, [time, Cp]),'g-', time, Cp, 'ro')
+                figure('Position', [100, 300, 1200, 300]), plot(time, toi,'ko',time,calculated,'g-', time, Cp, 'ro')
                 legend('toi','Fitted exponential', 'aif')
                 text = sprintf('FS: %.3f\nPs: %.3f\nVp: %.3f\nVe: %.3f', B(1),B(2),B(3),B(4));
                 annotation('textbox',[.91 .4 .1 .3],'String',text,'FitBoxToText','on')
@@ -171,6 +181,7 @@ classdef CXM_bound
             [pars(6,1),pars(5,1)]=obj.rsquare(toi,pred);%ry
         end
 
+
     end
 
     methods (Static)
@@ -183,7 +194,33 @@ classdef CXM_bound
             save_nii(temp_nii, savepath);
             disp(["Suceess to save the nifti files" + savepath])
         end
+        function [tb, tp, te, k_m, k_p, e, d] = PHY2MODEL_PARAMS(f, vp, ve, perm_surf)
+            tb = vp / f;
+            tp = vp / (perm_surf + f);
+            te = ve / perm_surf;
 
+            k_m = 0.5 * (1.0 / tp + 1.0 / te - sqrt((1.0 / tp + 1.0 / te)^2-4.0*(1.0 / tb)*(1.0 / te)));
+            k_p = 0.5 * (1.0 / tp + 1.0 / te + sqrt((1.0 / tp + 1.0 / te)^2-4.0*(1.0 / tb)*(1.0 / te)));
+            e = (k_p - 1.0 / tb) / (k_p - k_m);
+            d = k_p - k_m;
+        end
+        function Ctoi = TWO_COMPONENT_EX_MODEL(beta, params)
+            F = beta(1);
+            PS = beta(2);
+            vp = beta(3);
+            ve = beta(4);
+
+            time = params(:, 1);
+            AIF = params(:, 2);
+            time = time';
+            AIF = AIF';
+            
+            [tb, tp, te, km, k_p, E, delta] = CXM_bound.PHY2MODEL_PARAMS(F, vp, ve, PS);
+
+            signal = (time(2) - time(1)) * F * ...
+                (E * conv(exp(-km*time), AIF) + (1 - E) * conv(exp(-((km + delta) * time)), AIF));
+            Ctoi = signal(1:length(AIF))';
+        end
         function Ctoi = CXM_BOUND(beta, params)
             % ---------------------------------------------------------------
             % Calculate the simulated Ctoi according to the given parameters

@@ -8,12 +8,23 @@ classdef SimulatedDRO
         t_start (1, 1) {mustBeNumeric} = 0 % started timepoints [min]
         t_intval (1, 1) {mustBeNumeric} = 0.02 % temporal resolution [min]
         t_end (1, 1) {mustBeNumeric} = 2 % end timepoints [min]
+        
+        % start, stop
+        % flow (1, 2) {mustBeNumeric} = [0.15, .5]
+        % vp (1, 2) {mustBeNumeric} = [0.06, .17]
+        % ve (1, 2) {mustBeNumeric} = [0.07, 0.2]
+        % ps (1, 2) {mustBeNumeric} = [0.05, 0.12]
 
-        flow (1, 4) {mustBeNumeric} = [0.0010, 0.0013, 0.0015, 0.0017]
-        vp (1, 4) {mustBeNumeric} = [0.2, 0.3, 0.4, 0.5]
-        ve (1, 3) {mustBeNumeric} = [0.05, 0.1, 0.15]
-        ps (1, 3) {mustBeNumeric} = [0.001, 0.005, 0.01]
-
+        flow (1, 2) {mustBeNumeric} = [0.05, 1]
+        vp (1, 2) {mustBeNumeric} = [0.01, .4]
+        ve (1, 2) {mustBeNumeric} = [0.01, 0.5]
+        ps (1, 2) {mustBeNumeric} = [0.01, 0.2]
+        
+        flowstep (1, 1) {mustBeNumeric} = 10
+        psstep (1, 1) {mustBeNumeric} = 10
+        vpstep (1, 1) {mustBeNumeric} = 10
+        vestep (1, 1) {mustBeNumeric} = 10
+        
         % parameters for gaussian kernal curve
         B (1, 1) {mustBeNumeric} =  1.050 % mM
         a1 (1, 1) {mustBeNumeric} = 0.809 % mM min
@@ -32,59 +43,67 @@ classdef SimulatedDRO
         dual_a2 (1, 1) {mustBeNumeric} = 3
         dual_m1 (1, 1) {mustBeNumeric} = 0.5
         dual_m2 (1, 1) {mustBeNumeric} = 0.01
-
+        
 
     end
     methods
+        % function obj = SimulatedDRO()
+        % 
+        % end 
+        function [dims, timepoints, aif, myo_curves_slice, myo_pars_slice] = SIMULATE_2CXM(obj)
+            % dims = (40, 120, 3)
+            flowvec = linspace(obj.flow(1), obj.flow(2), obj.flowstep);
+            psvec = linspace(obj.ps(1), obj.ps(2), obj.psstep).';
+            vpvec = linspace(obj.vp(1), obj.vp(2), obj.vpstep);
+            vevec = linspace(obj.ve(1), obj.ve(2), obj.vestep).';
 
-        function [timepoints, aif, myo_curves_slice, myo_pars_slice] = SIMULATE_2CXM(obj, dims)
+            dims = [obj.flowstep * obj.vpstep, obj.vestep * obj.psstep];
             % Simulate the DRO (digital reference object) data
             timepoints = obj.t_start:obj.t_intval:obj.t_end;
             timepoints = timepoints(1:end-1);
 
             % aif, arterial input function
             % aif = obj.f_GAMMA(10^5/3, timepoints);
-            % aif = obj.DUAL_EXP(timepoints);
-            aif = obj.GAUSSIAN_EXP(timepoints);
+            aif = obj.DUAL_EXP(timepoints);
+            % aif = obj.GAUSSIAN_EXP(timepoints);
 
-            % set parameters
-            flows = zeros(dims);
-            vps = zeros(dims);
-            ves = zeros(dims);
-            pss = zeros(dims);
+            % used for 100 by 100
+            flows = repmat(flowvec, obj.vestep * obj.psstep, obj.vpstep);
+            ves = repmat(vevec, obj.psstep, obj.vpstep * obj.flowstep);
+            vps = repelem(vpvec, obj.vestep * obj.psstep, obj.flowstep);
+            pss = repelem(psvec, obj.vestep, obj.flowstep * obj.vpstep);
 
-            for i = 0:(length(obj.flow)-1)
-                flows(i*10+1:(i + 1)*10, :, :) = obj.flow(i+1);
-            end
-
-            for i = 0:(length(obj.vp)-1)
-                for j = 0:2
-                    vps(:, 10*(i + 4 * j)+1:10*(i + 1 + 4 * j), :) = obj.vp(i+1);
-                end
-            end
-            
-            for i = 0:(length(obj.ve)-1)
-                ves(:, i*(dims(2)/length(obj.ve))+1:(i + 1)*(dims(2)/length(obj.ve)), :) = obj.ve(i+1);
-            end
-            
-            for i = 0:(length(obj.ps)-1)
-                pss(:, :, i+1) = obj.ps(i+1);
-            end
+            % used for a 40 by 120 matrix 
+            % for i = 0:(length(obj.flow)-1)
+            %     flows(i*10+1:(i + 1)*10, :, :) = obj.flow(i+1);
+            % end
+            % 
+            % for i = 0:(length(obj.vp)-1)
+            %     for j = 0:2
+            %         vps(:, 10*(i + 4 * j)+1:10*(i + 1 + 4 * j), :) = obj.vp(i+1);
+            %     end
+            % end
+            % 
+            % for i = 0:(length(obj.ve)-1)
+            %     ves(:, i*(dims(2)/length(obj.ve))+1:(i + 1)*(dims(2)/length(obj.ve)), :) = obj.ve(i+1);
+            % end
+            % 
+            % for i = 0:(length(obj.ps)-1)
+            %     pss(:, :, i+1) = obj.ps(i+1);
+            % end
 
 
             % simulate the signal within the myo
             for i = 1:dims(1)
                 for j = 1:dims(2)
-                    for k = 1:dims(3)
-                        % fprintf("i: %d, j: %d, k: %d\n", i, j, k)
-                        pars = [flows(i, j, k), pss(i, j, k), vps(i, j, k), ves(i, j, k)];
-                        % signal = obj.TWO_COMPONENT_EX_MODEL(num2cell(pars), timepoints, aif);
-                        signal = obj.CXM_BOUND(pars, [timepoints', aif']);
+                    % fprintf("i: %d, j: %d, k: %d\n", i, j, k)
+                    pars = [flows(i, j), pss(i, j), vps(i, j), ves(i, j)];
+                    signal = obj.TWO_COMPONENT_EX_MODEL(pars, timepoints, aif);
+                    % signal = obj.CXM_BOUND(pars, [timepoints', aif']);
 
-                        % v approximate v_e + v_p
-                        myo_curves(:, i, j, k, 1) = signal;
-                        myo_pars(i, j, k, 1, :) = pars;
-                    end
+                    % v approximate v_e + v_p
+                    myo_curves(:, i, j) = signal;
+                    myo_pars(i, j, :) = pars;
                 end
             end
 
@@ -97,7 +116,7 @@ classdef SimulatedDRO
             end
 
             % remove impossible values
-            myo_curves(1, :, :, :, :) = 0;
+            myo_curves(1, :, :, :) = 0;
 
             % input and output normalization
             % timepoints = normalize(timepoints);
@@ -106,8 +125,8 @@ classdef SimulatedDRO
             % myo_curves = myo_curves / maxx;
 
             % select slices
-            myo_pars_slice = myo_pars(:, :, obj.ps_slice, :, :);
-            myo_curves_slice = myo_curves(:, :, :, obj.ps_slice);
+            myo_pars_slice = myo_pars;
+            myo_curves_slice = myo_curves;
         end
 
         function [gamma] = f_GAMMA(obj, K, time)
@@ -130,12 +149,24 @@ classdef SimulatedDRO
         end
 
         function [signal] = TWO_COMPONENT_EX_MODEL(obj, parameters, time, AIF)
-            [f, vol_p, vol_e, PS] = deal(parameters{:});
-            [tb, tp, te, km, k_p, E, delta] = obj.PHY2MODEL_PARAMS(f, vol_p, vol_e, PS);
+            F = parameters(1);
+            PS = parameters(2);
+            vp = parameters(3);
+            ve = parameters(4);
+            
+            [tb, tp, te, km, k_p, E, delta] = obj.PHY2MODEL_PARAMS(F, vp, ve, PS);
 
-            signal = (time(2) - time(1)) * f * ...
+            signal = (time(2) - time(1)) * F * ...
                 (E * conv(exp(-km*time), AIF) + (1 - E) * conv(exp(-((km + delta) * time)), AIF));
-            signal = signal(1:length(AIF));
+            signal = signal(1:length(AIF))';
+               
+            % same model different variables 
+            % [f, PS, vol_p, vol_e] = deal(parameters{:});
+            % [tb, tp, te, km, k_p, E, delta] = obj.PHY2MODEL_PARAMS(f, vol_p, vol_e, PS);
+            % 
+            % signal = (time(2) - time(1)) * f * ...
+            %     (E * conv(exp(-km*time), AIF) + (1 - E) * conv(exp(-((km + delta) * time)), AIF));
+            % signal = signal(1:length(AIF));
         end
     end
 
