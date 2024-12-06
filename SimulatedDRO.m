@@ -10,15 +10,15 @@ classdef SimulatedDRO
         t_end (1, 1) {mustBeNumeric} = 2 % end timepoints [min]
         
         % start, stop
-        % flow (1, 2) {mustBeNumeric} = [0.15, .5]
-        % vp (1, 2) {mustBeNumeric} = [0.06, .17]
-        % ve (1, 2) {mustBeNumeric} = [0.07, 0.2]
-        % ps (1, 2) {mustBeNumeric} = [0.05, 0.12]
+        flow (1, 2) {mustBeNumeric} = [0.15, .5]
+        ps (1, 2) {mustBeNumeric} = [0.05, 0.12]
+        vp (1, 2) {mustBeNumeric} = [0.06, .17]
+        ve (1, 2) {mustBeNumeric} = [0.07, 0.2]
 
-        flow (1, 2) {mustBeNumeric} = [0.05, 1]
-        vp (1, 2) {mustBeNumeric} = [0.01, .4]
-        ve (1, 2) {mustBeNumeric} = [0.01, 0.5]
-        ps (1, 2) {mustBeNumeric} = [0.01, 0.2]
+        % flow (1, 2) {mustBeNumeric} = [0.05, 1]
+        % ps (1, 2) {mustBeNumeric} = [0.01, 0.2]
+        % vp (1, 2) {mustBeNumeric} = [0.01, .4]
+        % ve (1, 2) {mustBeNumeric} = [0.01, 0.5]
         
         flowstep (1, 1) {mustBeNumeric} = 10
         psstep (1, 1) {mustBeNumeric} = 10
