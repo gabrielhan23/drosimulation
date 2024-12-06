@@ -31,12 +31,8 @@ function results = simulation(DRO, output, num)
     
             name = sprintf('start%.1f end%.1f interval%.2f snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
             filename = sprintf('start%.1f_end%.1f_interval%.2f_snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
-            fprintf("Processing simulation %s in %s...\n", name, output)
-            if exist(fullfile(output, [filename, '_gt_pred.png']), "file") && resume
-                fprintf("Already calculated\n")
-                results = load(fullfile(output, [filename, '_data.mat'])).results;
-                continue
-            end
+            
+            
             % plot the aif and myo_curves
             figure('visible','off'),
             h1 = plot(timepoints, aif, '-o'); hold on
@@ -49,8 +45,16 @@ function results = simulation(DRO, output, num)
             
             CXMB = CXM_bound();
             mask = ones(dims(1), dims(2));
-            [fitresultsDCEcxm, simulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, myo_curves, mask, mask, timepoints);
-            
+            if exist(fullfile(output, [filename, '_gt_pred.png']), "file") && resume
+                fprintf("Already calculated %s in %s\n", name, output)
+                S = load(fullfile(output, [filename, '_data.mat']));
+                results = S.results;
+                fitresultsDCEcxm = S.fitresultsDCEcxm;
+                simulatedCXM = S.simulatedCXM;
+            else
+                fprintf("Processing simulation %s in %s...\n", name, output)
+                [fitresultsDCEcxm, simulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, myo_curves, mask, mask, timepoints);
+            end
             % plot the results
             F_cxm = fitresultsDCEcxm(:,:,1);
             PS_cxm = fitresultsDCEcxm(:,:,2);
@@ -71,7 +75,7 @@ function results = simulation(DRO, output, num)
     
             t = tiledlayout(4,3);
             width = 6000;    % Replace with your desired figure width
-            height = 8500;   % Replace with your desired figure height
+            height = 10000;   % Replace with your desired figure height
             fig = gcf;      % Get the current figure handle
             set(fig, 'Position', [100, 100, width, height]);
             title(t, name)
@@ -87,23 +91,21 @@ function results = simulation(DRO, output, num)
                 results(e_idx, i, :) = [MSE, SSIM];
                 nexttile
                 h1 = imshow(gt, [vmin(i), vmax(i)]); colormap(smoothCMRmap);
-                colorbar('fontsize', 50);
-                title(labels{i} + sprintf(" lower: %.3f upper: %.3f", vals(i, 1), vals(i, 2)),'fontsize',80)
+                colorbar;
+                title(labels{i} + sprintf(" lower: %.3f upper: %.3f", vals(i, 1), vals(i, 2)))
                 nexttile
                 h2 = imshow(pred, [vmin(i), vmax(i)]); colormap(smoothCMRmap);
-                title(sprintf("mse: %.3f\nssim: %.3f", MSE, SSIM), 'fontsize',80)
-                colorbar('fontsize', 50);
+                title(sprintf("mse: %.3f\nssim: %.3f", MSE, SSIM))
+                colorbar;
                 nexttile
                 h3 = imshow(gt-pred, [vmin(i), vmax(i)]); colormap(smoothCMRmap);
-                title("Diff", 'fontsize',80)
-                colorbar('fontsize', 50);
+                title("Diff")
+                colorbar;
                 t.Padding = 'none';
                 t.TileSpacing = 'tight';
             end
             saveas(gcf, fullfile(output, [filename, '_gt_pred.png']))
-            save(fullfile(output, [filename, '_data.mat']), 'results');
-            
-
+            save(fullfile(output, [filename, '_data.mat']), 'results', 'fitresultsDCEcxm', 'simulatedCXM');
 
             % Save the simulated DRO and predicted DRO
             % mkdir(fullfile(output, name))
@@ -117,7 +119,7 @@ end
     
 clear all
 addpath(genpath('.'))
-dir = "results/comparison#2";
+dir = "results/comparison#3";
 mkdir(dir)
 output = "./"+dir;
 
@@ -159,13 +161,16 @@ for x = 1:4
         for y = 1:4
             nexttile;
             histogram('BinEdges',iter,'BinCounts',results(:, z, y, 1)');
+            set(gca,'xscale','log')
             title(vars(y)+" mse")
             nexttile;
             histogram('BinEdges',iter,'BinCounts',results(:, z, y, 2)');
+            set(gca,'xscale','log')
             title(vars(y)+" ssim")
             ylim([min(results(:, z, y, 2)'*.9), 1]);
         end
-        saveas(gcf, fullfile(output+"/"+vars(x)+"/compare_end"+z+".png"));
+        exportgraphics(t,fullfile(output+"/"+vars(x)+"/compare_end"+z+".png"),'ContentType','vector')
+        % saveas(gcf,fullfile(output+"/"+vars(x)+"/compare_end"+z+".png"));
     end
     
 end
