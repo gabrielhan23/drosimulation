@@ -13,10 +13,10 @@ function results = simulation(DRO, output, num)
     DRO.t_intval = 0.05; % mins
     DRO.ps_slice = 1;
     [dims, timepoints_all, aif_all, myo_curves_all, myo_pars] = DRO.SIMULATE_2CXM();
-    figure('visible','off'),
+    figure('visible','off');
     h1 = plot(timepoints_all, aif_all, '-o'); hold on
     h2 = plot(timepoints_all, myo_curves_all(:, 1, 1), '-o'); hold on
-    leg_all = legend([h1 h2], 'AIF', 'Myo curves', 'fontsize',12, 'FontName', 'Arial', ...
+    leg_all = legend([h1 h2], 'AIF', 'Myo curves', 'fontsize', 12, 'FontName', 'Arial', ...
         'Location', 'northeast', 'FontWeight', 'bold');
     saveas(gcf, fullfile(output, 'alltimepoints_aif_myo_curve.png'))
     for s_idx = 1:length(t_start)
@@ -31,18 +31,7 @@ function results = simulation(DRO, output, num)
     
             name = sprintf('start%.1f end%.1f interval%.2f snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
             filename = sprintf('start%.1f_end%.1f_interval%.2f_snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
-            
-            
-            % plot the aif and myo_curves
-            figure('visible','off'),
-            h1 = plot(timepoints, aif, '-o'); hold on
-            h2 = plot(timepoints, myo_curves(:, 1, 1), '-o'); hold on
-            leg_all = legend([h1 h2], 'AIF', 'Myo curves', 'fontsize',12, 'FontName', 'Arial', ...
-                'Location', 'northeast', 'FontWeight', 'bold');
-            title(sprintf("Flow:%.1f, PS:%.1f, Ve:%.2f, Vp:%.2f", myo_pars(1, 1, 1), myo_pars(1, 1, 2), myo_pars(1, 1, 3), myo_pars(1, 1, 4)));
-            
-            saveas(gcf, fullfile(output, [filename, '_aif_myo_curve.png']))
-            
+
             CXMB = CXM_bound();
             mask = ones(dims(1), dims(2));
             if exist(fullfile(output, [filename, '_gt_pred.png']), "file") && resume
@@ -72,12 +61,13 @@ function results = simulation(DRO, output, num)
     
             % Interpolate the colormap to create a smooth gradient
             smoothCMRmap = interp1(1:size(CMRmap, 1), CMRmap, x, 'linear');
-    
+            
+            figure('visible','off');
             t = tiledlayout(4,3);
-            width = 6000;    % Replace with your desired figure width
-            height = 10000;   % Replace with your desired figure height
-            fig = gcf;      % Get the current figure handle
-            set(fig, 'Position', [100, 100, width, height]);
+            width = 900;    % Replace with your desired figure width
+            height = 1200;   % Replace with your desired figure height
+            %fig = gcf;      % Get the current figure handle
+            set(gcf, 'Position', [100, 100, width, height]);
             title(t, name)
             labels = {'Flow', 'PS', 'Vp', 'Ve'};
             vmin = [0,0,0,0];
@@ -107,19 +97,29 @@ function results = simulation(DRO, output, num)
             saveas(gcf, fullfile(output, [filename, '_gt_pred.png']))
             save(fullfile(output, [filename, '_data.mat']), 'results', 'fitresultsDCEcxm', 'simulatedCXM');
 
+            % plot the aif and myo_curves
+            figure('visible','off');
+            h1 = plot(timepoints, aif, '.'); hold on
+            h2 = plot(timepoints, myo_curves(:, 1, 1), '-.'); hold on
+            h3 = plot(timepoints, simulatedCXM(:, 1, 1), '-.'); hold on
+            leg_all = legend([h1 h2 h3], 'AIF', 'Myo curves', 'Simulated myo curves', 'fontsize',12, 'FontName', 'Arial', ...
+                'Location', 'northeast', 'FontWeight', 'bold');
+            title(sprintf("Flow:%.1f, PS:%.1f, Ve:%.2f, Vp:%.2f", myo_pars(1, 1, 1), myo_pars(1, 1, 2), myo_pars(1, 1, 3), myo_pars(1, 1, 4)));
+            
+            saveas(gcf, fullfile(output, [filename, '_aif_myo_curve.png']))
             % Save the simulated DRO and predicted DRO
             % mkdir(fullfile(output, name))
             % CXMB.mat2Nifti(permute(myo_curves, [2, 3, 1]), fullfile(output, name, 'SimulationDRO.nii'), [1, 1, 1]);
             % CXMB.mat2Nifti(permute(simulatedCXM, [2, 3, 1]), fullfile(output, name, 'PredictedDRO.nii'), [1, 1, 1]);
             % save(fullfile(output, name, 'workspace.mat'))
-            close all 
+            % close all 
         end
     end
 end
     
 clear all
 addpath(genpath('.'))
-dir = "results/comparison#3";
+dir = "results/comparison#4";
 mkdir(dir)
 output = "./"+dir;
 
@@ -131,6 +131,7 @@ vecs = [flow; ps; vp; ve];
 vars = ["flow", "ps", "vp", "ve"];
 n = 20;
 elem_per_iter = 8;
+fontSize = 50;
 
 for x = 1:4
     vec = vecs(x, :);
@@ -141,14 +142,16 @@ for x = 1:4
         currpath = "/"+vars(x)+"/"+sprintf("lower%.3f_upper%.3f", iter(i), iter(i+1));
         mkdir(dir+currpath);
         DRO = SimulatedDRO();
-        if i == 1
+        if x == 1
             DRO.flow = [iter(i), iter(i+1)];
-        elseif i == 2
+        elseif x == 2
             DRO.ps = [iter(i), iter(i+1)];    
-        elseif i == 3
+        elseif x == 3
             DRO.vp = [iter(i), iter(i+1)];    
-        elseif i == 4
-            DRO.ve = [iter(i), iter(i+1)];    
+        elseif x == 4
+            DRO.ve = [iter(i), iter(i+1)];
+        else
+            error("Values not changed")
         end
         results(i, :, :, :) = simulation(DRO, output + currpath, elem_per_iter);
     end
