@@ -1,28 +1,51 @@
 % Simulate the four parameters, vp, ve, ps, flow
 % depend on Classdef SimulatedDRO and CXM_bound
 % Mona, April 2024
-function results = simulation(DRO, output, num)
-    results = zeros(num, 4, 2);
+
+function results = simulate_make_dro(DRO, output, t_start, end_val)
+    results = zeros(end_val, 4, 2);
     resume = true;
     reimage = true;
-    t_start = (0:15:120); % previously was 
-    t_start = [0];
 
     DRO.snr = 0;
     DRO.t_start = 0;
-    DRO.t_end = 1200/60;
+    DRO.t_end = 21;
     DRO.t_intval = 0.05; % mins
     DRO.ps_slice = 1;
-    [dims, timepoints_all, aif_all, myo_curves_all, myo_pars] = DRO.SIMULATE_2CXM();
+    
+    % Load DRO Params
+    if exist(fullfile(output, 'dro_data.mat'), "file")
+        fprintf("Loading dro\n")
+        S = load(fullfile(output, 'dro_data.mat'));
+        dims = S.dims; timepoints_all = S.timepoints_all; aif_all = S.aif_all; myo_curves_all = S.myo_curves_all; myo_pars = S.myo_pars;
+        DRO = S.DRO;
+    else
+        [dims, timepoints_all, aif_all, myo_curves_all, myo_pars] = DRO.SIMULATE_2CXM();
+        save(fullfile(output, 'dro_data.mat'), 'DRO', 'dims', 'timepoints_all', 'aif_all', 'myo_curves_all', 'myo_pars');
+    end
+
+    % Plot AIF and one myo curve
     figure('visible','off');
     h1 = plot(timepoints_all, aif_all, '-o'); hold on
     h2 = plot(timepoints_all, myo_curves_all(:, 1, 1), '-o'); hold on
     leg_all = legend([h1 h2], 'AIF', 'Myo curves', 'fontsize', 12, 'FontName', 'Arial', ...
         'Location', 'northeast', 'FontWeight', 'bold');
-    saveas(gcf, fullfile(output, 'alltimepoints_aif_myo_curve.png'))
+    saveas(gcf, fullfile(output, 'alltimepoints_aif_myo_curve.png'));
+    
+    % Plot all myo curves
+    fig = figure('visible','off');
+    t = tiledlayout(4,4);
+    tiles = arrayfun(@(x) nexttile, 1:16);
+    set(fig, 'Position', [100, 100, 1200, 1200]);
+    title(t, "All Myo Curves")
+    plotMyos(myo_curves_all, DRO, tiles, "gt")
+    saveas(fig, fullfile(output, 'allmyocurves.png'));
+
     for s_idx = 1:length(t_start)
         t_end = (t_start(s_idx)+90:60:1200);
-        t_end = t_end(1:num);
+        t_end = t_end(1:end_val);
+
+        % One iteration of time
         for e_idx = 1:length(t_end)
             start_index = t_start(s_idx)/60/DRO.t_intval;
             end_index = t_end(e_idx)/60/DRO.t_intval;
@@ -40,13 +63,14 @@ function results = simulation(DRO, output, num)
                 S = load(fullfile(output, [filename, '_data.mat']));
                 results = S.results;
                 if reimage == false
-                    return
+                    continue
                 end
                 fitresultsDCEcxm = S.fitresultsDCEcxm;
                 simulatedCXM = S.simulatedCXM;
+                fullsimulatedCXM = S.fullsimulatedCXM;
             else
                 fprintf("Processing simulation %s in %s...\n", name, output)
-                [fitresultsDCEcxm, simulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, myo_curves, mask, mask, timepoints);
+                [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, aif_all, myo_curves, myo_curves_all, mask, mask, timepoints, timepoints_all);
             end
             % plot the results
             F_cxm = fitresultsDCEcxm(:,:,1);
@@ -70,13 +94,13 @@ function results = simulation(DRO, output, num)
             t = tiledlayout(4,3);
             width = 900;    % Replace with your desired figure width
             height = 1200;   % Replace with your desired figure height
-            %fig = gcf;      % Get the current figure handle
             set(gcf, 'Position', [100, 100, width, height]);
             title(t, name)
             labels = {'Flow', 'PS', 'Vp', 'Ve'};
             vmin = [0,0,0,0];
             vmax = [DRO.flow(2)*1.25,DRO.ps(2)*1.25,DRO.vp(2)*1.25,DRO.ve(2)*1.25];
             vals = [DRO.flow; DRO.ps; DRO.vp; DRO.ve];
+
             for i = 1:4
                 pred = fitresultsDCEcxm(:,:,i)';
                 gt = myo_pars(:, :, i)';
@@ -98,101 +122,45 @@ function results = simulation(DRO, output, num)
                 t.Padding = 'none';
                 t.TileSpacing = 'tight';
             end
+
+            % Save predicted 
             saveas(gcf, fullfile(output, [filename, '_gt_pred.png']))
-            save(fullfile(output, [filename, '_data.mat']), 'results', 'fitresultsDCEcxm', 'simulatedCXM');
-
-            % plot the aif and myo_curves
-            figure('visible','off');
-            h1 = plot(timepoints, aif, '.'); hold on
-            h2 = plot(timepoints, myo_curves(:, 1, 1), '-.'); hold on
-            h3 = plot(timepoints, simulatedCXM(:, 1, 1), '-.'); hold on
-            leg_all = legend([h1 h2 h3], 'AIF', 'Myo curves', 'Simulated myo curves', 'fontsize',12, 'FontName', 'Arial', ...
-                'Location', 'northeast', 'FontWeight', 'bold');
-            title(sprintf("Flow:%.1f, PS:%.1f, Ve:%.2f, Vp:%.2f", myo_pars(1, 1, 1), myo_pars(1, 1, 2), myo_pars(1, 1, 3), myo_pars(1, 1, 4)));
+            save(fullfile(output, [filename, '_data.mat']), 'results', 'fitresultsDCEcxm', 'simulatedCXM', 'fullsimulatedCXM');
             
-            saveas(gcf, fullfile(output, [filename, '_aif_myo_curve.png']))
-            % Save the simulated DRO and predicted DRO
-            % mkdir(fullfile(output, name))
-            % CXMB.mat2Nifti(permute(myo_curves, [2, 3, 1]), fullfile(output, name, 'SimulationDRO.nii'), [1, 1, 1]);
-            % CXMB.mat2Nifti(permute(simulatedCXM, [2, 3, 1]), fullfile(output, name, 'PredictedDRO.nii'), [1, 1, 1]);
-            % save(fullfile(output, name, 'workspace.mat'))
-            % close all 
+            % Plot calculated myo curves 
+            figure('visible','off');
+            t = tiledlayout(4,4);
+            tiles = arrayfun(@(x) nexttile, 1:16);
+            set(gcf, 'Position', [100, 100, 1200, 1200]);
+            title(t, "All Myo Curves for "+name)
+            plotMyos(myo_curves_all, DRO, tiles, "gt")
+            plotMyos(myo_curves, DRO, tiles, "current")
+            plotMyos(fullsimulatedCXM, DRO, tiles, "calculated")
+            saveas(gcf, fullfile(output, [filename, '_allmyocurves.png']));
         end
     end
 end
-    
-clear all
-addpath(genpath('.'))
-dir = "results/comparison#4";
-dir = "results/#13 - pinnpaper";
-mkdir(dir)
-output = "./"+dir;
 
-flow = [0.01, 5];
-ps = [0.01, 3];
-vp = [0.01, .3];
-ve = [0.01, 0.5];
-vecs = [flow; ps; vp; ve];
-vars = ["flow", "ps", "vp", "ve"];
-n = 20;
-elem_per_iter = 15;
-fontSize = 50;
+function plotMyos(myo_curves, DRO, tiles, displayname)
+    hold(tiles(1), 'on'); plot(tiles(1), myo_curves(:, 1, 1), '-', 'DisplayName', displayname); title(tiles(1), "min flow, min ps, min vp, min ve"); legend(tiles(1), 'show'); 
+    hold(tiles(2), 'on'); plot(tiles(2), myo_curves(:, 1, DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(2), "min flow, min ps, min vp, max ve"); legend(tiles(2), 'show'); 
+    hold(tiles(3), 'on'); plot(tiles(3), myo_curves(:, 1, end-DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(3), "min flow, max ps, min vp, min ve"); legend(tiles(3), 'show'); 
+    hold(tiles(4), 'on'); plot(tiles(4), myo_curves(:, 1, end), '-', 'DisplayName', displayname); title(tiles(4), "min flow, max ps, min vp, max ve"); legend(tiles(4), 'show'); 
 
-DRO = SimulatedDRO();
-simulation(DRO, output, elem_per_iter);
-quit;
+    hold(tiles(5), 'on'); plot(tiles(5), myo_curves(:, DRO.psstep, 1), '-', 'DisplayName', displayname); title(tiles(5), "max flow, min ps, min vp, min ve"); legend(tiles(5), 'show'); 
+    hold(tiles(6), 'on'); plot(tiles(6), myo_curves(:, DRO.psstep, DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(6), "max flow, min ps, min vp, max ve"); legend(tiles(6), 'show'); 
+    hold(tiles(7), 'on'); plot(tiles(7), myo_curves(:, DRO.psstep, end-DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(7), "max flow, max ps, min vp, min ve"); legend(tiles(7), 'show'); 
+    hold(tiles(8), 'on'); plot(tiles(8), myo_curves(:, DRO.psstep, end), '-', 'DisplayName', displayname); title(tiles(8), "max flow, max ps, min vp, max ve"); legend(tiles(8), 'show'); 
 
-for param = 1:4
-    vec = vecs(param, :);
-    gr = (vec(2)/vec(1))^(1/(n-1));
-    iter = vec(1) * gr.^(0:n-1);
-    results = zeros(n-1, elem_per_iter, 4, 2);
-    for variation = 1:length(iter)-1
-        currpath = "/"+vars(param)+"/"+sprintf("lower%.3f_upper%.3f", iter(variation), iter(variation+1));
-        [status, msg] = mkdir(dir+currpath);
-        DRO = SimulatedDRO();
-        if param == 1
-            DRO.flow = [iter(variation), iter(variation+1)];
-        elseif param == 2
-            DRO.ps = [iter(variation), iter(variation+1)];    
-        elseif param == 3
-            DRO.vp = [iter(variation), iter(variation+1)];    
-        elseif param == 4
-            DRO.ve = [iter(variation), iter(variation+1)];
-        else
-            error("Values not changed")
-        end
-        results(variation, :, :, :) = simulation(DRO, output + currpath, elem_per_iter);
-    end
-    for time = 1:elem_per_iter
-        fig = gcf;
-        t = tiledlayout(4,4);
-        width = 1200;
-        height = 1200;
-        set(fig, 'Position', [100, 100, width, height]);
-        % t.Padding = 'none';
-        t.TileSpacing = 'tight';
-        title(t, sprintf(vars(param)+" variation between %.3f and %.3f at time %s", vecs(param, 1), vecs(param, 2)), time); 
-        for allparam = 1:4
-            nexttile;
-            histogram('BinEdges',iter,'BinCounts',results(:, time, allparam, 1)');
-            set(gca,'xscale','log')
-            title(vars(allparam)+" mse log")
-            nexttile;
-            histogram('BinEdges',iter,'BinCounts',max(results(:, time, allparam, 2)',0));
-            set(gca,'xscale','log')
-            title(vars(allparam)+" ssim log")
-            ylim([min(results(:, time, allparam, 2)'*.9), 1]);
-            nexttile;
-            histogram('BinEdges',iter,'BinCounts',results(:, time, allparam, 1)');
-            title(vars(allparam)+" mse")
-            nexttile;
-            histogram('BinEdges',iter,'BinCounts',max(results(:, time, allparam, 2)',0));
-            title(vars(allparam)+" ssim")
-            ylim([min(results(:, time, allparam, 2)'*.9), 1]);
-        end
-        % exportgraphics(t,fullfile(output+"/"+vars(param)+"/compare_end"+time+".png"),'ContentType', 'vector')
-        saveas(t,fullfile(output+"/"+vars(param)+"/compare_end"+time+".png"));
-    end
+    hold(tiles(9), 'on'); plot(tiles(9), myo_curves(:, end-DRO.psstep, 1), '-', 'DisplayName', displayname); title(tiles(9), "min flow, min ps, max vp, min ve"); legend(tiles(9), 'show'); 
+    hold(tiles(10), 'on'); plot(tiles(10), myo_curves(:, end-DRO.psstep, DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(10), "min flow, min ps, max vp, max ve"); legend(tiles(10), 'show'); 
+    hold(tiles(11), 'on'); plot(tiles(11), myo_curves(:, end-DRO.psstep, end-DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(11), "min flow, max ps, max vp, min ve"); legend(tiles(11), 'show'); 
+    hold(tiles(12), 'on'); plot(tiles(12), myo_curves(:, end-DRO.psstep, end), '-', 'DisplayName', displayname); title(tiles(12), "min flow, max ps, max vp, max ve"); legend(tiles(12), 'show'); 
+
+    hold(tiles(13), 'on'); plot(tiles(13), myo_curves(:, end, 1), '-', 'DisplayName', displayname); title(tiles(13), "max flow, min ps, max vp, min ve"); legend(tiles(13), 'show'); 
+    hold(tiles(14), 'on'); plot(tiles(14), myo_curves(:, end, DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(14), "max flow, min ps, max vp, max ve"); legend(tiles(14), 'show'); 
+    hold(tiles(15), 'on'); plot(tiles(15), myo_curves(:, end, end-DRO.vpstep), '-', 'DisplayName', displayname); title(tiles(15), "max flow, max ps, max vp, min ve"); legend(tiles(15), 'show'); 
+    hold(tiles(16), 'on'); plot(tiles(16), myo_curves(:, end, end), '-', 'DisplayName', displayname); title(tiles(16), "max flow, max ps, max vp, max ve"); legend(tiles(16), 'show'); 
     
 end
+    

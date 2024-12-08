@@ -12,7 +12,7 @@ classdef CXM_bound
 
 
 
-        function [fitresultsDCEcxm, simulatedCXM] = SOLVER_CXM_BOUND_ITERATIONS(obj, aif, myo_curves, mask, myo_mask, time)
+        function [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = SOLVER_CXM_BOUND_ITERATIONS(obj, aif, aif_all, myo_curves, myo_curves_all, mask, myo_mask, time, time_all)
             % ---------------------------------------------------------------
             % solve the cxm bound model in an iterative optimization way
             % /::INPUTS::\
@@ -35,6 +35,7 @@ classdef CXM_bound
             Rsqc = -1 * ones([rows * cols, 1]);
             x0c = repmat(obj.x0, [rows * cols, 1]);
             simulatedCXM = zeros(size(myo_curves));
+            fullsimulatedCXM = zeros(size(myo_curves_all));
             fitresultsDCEcxm = zeros(rows, cols, 6);
             while (NityFivpercent < obj.threshold && iter < obj.iters)
             % while (iter < obj.iters)
@@ -56,6 +57,7 @@ classdef CXM_bound
                                     % fit success, update
                                     % simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time, aif]);
                                     simulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time', aif']);
+                                    fullsimulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time_all', aif_all']);
                                     fitresultsDCEcxm(i, j, :) = tempfitDCE;
                                     Rsqc(c) = tempfitDCE(end);
                                 end
