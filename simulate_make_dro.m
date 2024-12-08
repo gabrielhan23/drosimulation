@@ -4,6 +4,7 @@
 function results = simulation(DRO, output, num)
     results = zeros(num, 4, 2);
     resume = true;
+    reimage = true;
     t_start = (0:15:120); % previously was 
     t_start = [0];
 
@@ -38,6 +39,9 @@ function results = simulation(DRO, output, num)
                 fprintf("Already calculated %s in %s\n", name, output)
                 S = load(fullfile(output, [filename, '_data.mat']));
                 results = S.results;
+                if reimage == false
+                    return
+                end
                 fitresultsDCEcxm = S.fitresultsDCEcxm;
                 simulatedCXM = S.simulatedCXM;
             else
@@ -88,8 +92,8 @@ function results = simulation(DRO, output, num)
                 title(sprintf("mse: %.3f\nssim: %.3f", MSE, SSIM))
                 colorbar;
                 nexttile
-                h3 = imshow(gt-pred, [vmin(i), vmax(i)]); colormap(smoothCMRmap);
-                title("Diff")
+                h3 = imshow(abs(gt-pred), [vmin(i), vmax(i)]); colormap(smoothCMRmap);
+                title("Absolute Diff")
                 colorbar;
                 t.Padding = 'none';
                 t.TileSpacing = 'tight';
@@ -120,6 +124,7 @@ end
 clear all
 addpath(genpath('.'))
 dir = "results/comparison#4";
+dir = "results/#13 - pinnpaper";
 mkdir(dir)
 output = "./"+dir;
 
@@ -130,50 +135,64 @@ ve = [0.01, 0.5];
 vecs = [flow; ps; vp; ve];
 vars = ["flow", "ps", "vp", "ve"];
 n = 20;
-elem_per_iter = 8;
+elem_per_iter = 15;
 fontSize = 50;
 
-for x = 1:4
-    vec = vecs(x, :);
+DRO = SimulatedDRO();
+simulation(DRO, output, elem_per_iter);
+quit;
+
+for param = 1:4
+    vec = vecs(param, :);
     gr = (vec(2)/vec(1))^(1/(n-1));
     iter = vec(1) * gr.^(0:n-1);
     results = zeros(n-1, elem_per_iter, 4, 2);
-    for i = 1:length(iter)-1
-        currpath = "/"+vars(x)+"/"+sprintf("lower%.3f_upper%.3f", iter(i), iter(i+1));
-        mkdir(dir+currpath);
+    for variation = 1:length(iter)-1
+        currpath = "/"+vars(param)+"/"+sprintf("lower%.3f_upper%.3f", iter(variation), iter(variation+1));
+        [status, msg] = mkdir(dir+currpath);
         DRO = SimulatedDRO();
-        if x == 1
-            DRO.flow = [iter(i), iter(i+1)];
-        elseif x == 2
-            DRO.ps = [iter(i), iter(i+1)];    
-        elseif x == 3
-            DRO.vp = [iter(i), iter(i+1)];    
-        elseif x == 4
-            DRO.ve = [iter(i), iter(i+1)];
+        if param == 1
+            DRO.flow = [iter(variation), iter(variation+1)];
+        elseif param == 2
+            DRO.ps = [iter(variation), iter(variation+1)];    
+        elseif param == 3
+            DRO.vp = [iter(variation), iter(variation+1)];    
+        elseif param == 4
+            DRO.ve = [iter(variation), iter(variation+1)];
         else
             error("Values not changed")
         end
-        results(i, :, :, :) = simulation(DRO, output + currpath, elem_per_iter);
+        results(variation, :, :, :) = simulation(DRO, output + currpath, elem_per_iter);
     end
-    for z = 1:elem_per_iter
+    for time = 1:elem_per_iter
         fig = gcf;
-        t = tiledlayout(4,2);
-        t.Padding = 'none';
+        t = tiledlayout(4,4);
+        width = 1200;
+        height = 1200;
+        set(fig, 'Position', [100, 100, width, height]);
+        % t.Padding = 'none';
         t.TileSpacing = 'tight';
-        title(t, sprintf(vars(x)+" variation between %.3f and %.3f for time %d", ps(1), ps(2)), z); 
-        for y = 1:4
+        title(t, sprintf(vars(param)+" variation between %.3f and %.3f at time %s", vecs(param, 1), vecs(param, 2)), time); 
+        for allparam = 1:4
             nexttile;
-            histogram('BinEdges',iter,'BinCounts',results(:, z, y, 1)');
+            histogram('BinEdges',iter,'BinCounts',results(:, time, allparam, 1)');
             set(gca,'xscale','log')
-            title(vars(y)+" mse")
+            title(vars(allparam)+" mse log")
             nexttile;
-            histogram('BinEdges',iter,'BinCounts',results(:, z, y, 2)');
+            histogram('BinEdges',iter,'BinCounts',max(results(:, time, allparam, 2)',0));
             set(gca,'xscale','log')
-            title(vars(y)+" ssim")
-            ylim([min(results(:, z, y, 2)'*.9), 1]);
+            title(vars(allparam)+" ssim log")
+            ylim([min(results(:, time, allparam, 2)'*.9), 1]);
+            nexttile;
+            histogram('BinEdges',iter,'BinCounts',results(:, time, allparam, 1)');
+            title(vars(allparam)+" mse")
+            nexttile;
+            histogram('BinEdges',iter,'BinCounts',max(results(:, time, allparam, 2)',0));
+            title(vars(allparam)+" ssim")
+            ylim([min(results(:, time, allparam, 2)'*.9), 1]);
         end
-        exportgraphics(t,fullfile(output+"/"+vars(x)+"/compare_end"+z+".png"),'ContentType','vector')
-        % saveas(gcf,fullfile(output+"/"+vars(x)+"/compare_end"+z+".png"));
+        % exportgraphics(t,fullfile(output+"/"+vars(param)+"/compare_end"+time+".png"),'ContentType', 'vector')
+        saveas(t,fullfile(output+"/"+vars(param)+"/compare_end"+time+".png"));
     end
     
 end
