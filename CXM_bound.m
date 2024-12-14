@@ -200,9 +200,9 @@ classdef CXM_bound
             tb = vp / f;
             tp = vp / (perm_surf + f);
             te = ve / perm_surf;
-
-            k_m = 0.5 * (1.0 / tp + 1.0 / te - sqrt((1.0 / tp + 1.0 / te)^2-4.0*(1.0 / tb)*(1.0 / te)));
-            k_p = 0.5 * (1.0 / tp + 1.0 / te + sqrt((1.0 / tp + 1.0 / te)^2-4.0*(1.0 / tb)*(1.0 / te)));
+            v = sqrt((1.0 / tp + 1.0 / te)^2-4.0*(1.0 / tb)*(1.0 / te));
+            k_m = 0.5 * (1.0 / tp + 1.0 / te - v);
+            k_p = 0.5 * (1.0 / tp + 1.0 / te + v);
             e = (k_p - 1.0 / tb) / (k_p - k_m);
             d = k_p - k_m;
         end
