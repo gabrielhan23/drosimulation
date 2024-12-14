@@ -2,20 +2,22 @@
 % depend on Classdef SimulatedDRO and CXM_bound
 % Mona, April 2024
 
-function results = simulate_make_dro(DRO, output, t_start, end_val)
-    results = zeros(end_val, 4, 2);
+function results = simulate_make_dro(DRO, output, t_start, end_val, start_end_val)
+    results = zeros(end_val-fix(start_end_val/60), 4, 2);
     resume = true;
     reimage = false;
 
     DRO.snr = 0;
     DRO.t_start = 0;
     DRO.t_end = 21;
-    DRO.t_intval = 0.05; % mins
     DRO.ps_slice = 1;
-    
+
+    if any(mod(t_start, DRO.t_intval))
+        error("starting value is not on a timepoint")
+    end
     % Load DRO Params
-    if exist(fullfile(output, 'dro_data.mat'), "file")
-        fprintf("Loading dro\n")
+    if exist(fullfile(output, 'dro_data.mat'), "file") && resume
+        fprintf("Loading dro\n");
         S = load(fullfile(output, 'dro_data.mat'));
         dims = S.dims; timepoints_all = S.timepoints_all; aif_all = S.aif_all; myo_curves_all = S.myo_curves_all; myo_pars = S.myo_pars;
         DRO = S.DRO;
@@ -42,22 +44,20 @@ function results = simulate_make_dro(DRO, output, t_start, end_val)
     saveas(fig, fullfile(output, 'allmyocurves.png'));
 
     for s_idx = 1:length(t_start)
-        t_end = (t_start(s_idx)+90:60:1200);
+        t_end = (t_start(s_idx)+start_end_val:60:1200);
         t_end = t_end(1:end_val);
 
         % One iteration of time
         for e_idx = 1:length(t_end)
             start_index = t_start(s_idx)/60/DRO.t_intval;
             end_index = t_end(e_idx)/60/DRO.t_intval;
-            if s_idx > 1
-                timepoints = timepoints_all([1 start_index+1:end_index]);
-                aif = aif_all([1 start_index+1:end_index]);
-                myo_curves = myo_curves_all([1 start_index+1:end_index],:,:);
-            else
-                timepoints = timepoints_all(start_index+1:end_index);
-                aif = aif_all(start_index+1:end_index);
-                myo_curves = myo_curves_all(start_index+1:end_index,:,:);
-            end
+
+            % timepoints and aif start from 0 and are sliced after fed
+            % through 2cxm 
+            timepoints = timepoints_all(1:end_index);
+            aif = aif_all(1:end_index);
+            myo_curves = myo_curves_all(start_index+1:end_index,:,:);
+            % end
             name = sprintf('start%.1f end%.1f interval%.2f snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
             filename = sprintf('start%.1f_end%.1f_interval%.2f_snr%.2f', t_start(s_idx)/60, t_end(e_idx)/60, DRO.t_intval, DRO.snr);
 
@@ -75,7 +75,7 @@ function results = simulate_make_dro(DRO, output, t_start, end_val)
                 fullsimulatedCXM = S.fullsimulatedCXM;
             else
                 fprintf("Processing simulation %s in %s...\n", name, output)
-                [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, aif_all, myo_curves, myo_curves_all, mask, mask, timepoints, timepoints_all);
+                [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = CXMB.SOLVER_CXM_BOUND_ITERATIONS(aif, aif_all, myo_curves, myo_curves_all, mask, mask, timepoints, timepoints_all, start_index+1);
             end
             % plot the results
             F_cxm = fitresultsDCEcxm(:,:,1);
@@ -139,7 +139,7 @@ function results = simulate_make_dro(DRO, output, t_start, end_val)
             set(gcf, 'Position', [100, 100, 1200, 1200]);
             title(t, "All Myo Curves for "+name)
             plotMyos(timepoints_all, myo_curves_all, DRO, tiles, "gt")
-            plotMyos(timepoints, myo_curves, DRO, tiles, "current")
+            plotMyos(timepoints_all(start_index+1:end_index), myo_curves, DRO, tiles, "current")
             plotMyos(timepoints_all, fullsimulatedCXM, DRO, tiles, "calculated")
             saveas(gcf, fullfile(output, [filename, '_allmyocurves.png']));
         end

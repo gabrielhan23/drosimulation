@@ -3,16 +3,16 @@ classdef CXM_bound
         debug = false
         threshold (1, 1) {mustBeNumeric} = 0.85
         iters (1, 1) {mustBeNumeric} = 1
-        x0(1, 4) {mustBeNumeric} = [0.01, 0.001, 0.1, 0.1] % F, PS, Vp, Ve
+        x0(1, 4) {mustBeNumeric} = [0.1, 0.1, 0.1, 0.1] % F, PS, Vp, Ve
         lb(1, 4) {mustBeNumeric} = [0, 0, 0, 0]
-        ub(1, 4) {mustBeNumeric} = [0.5, 0.5, 0.5, 0.5]
+        ub(1, 4) {mustBeNumeric} = [5, 5, 1, 1]
         CMRmap = [0 0 0;.15 .15 .5;.3 .15 .75;.6 .2 .50;1 .25 .15;.9 .5 0;.9 .75 .1;.9 .9 .5;1 1 1];
     end
     methods
 
 
 
-        function [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = SOLVER_CXM_BOUND_ITERATIONS(obj, aif, aif_all, myo_curves, myo_curves_all, mask, myo_mask, time, time_all)
+        function [fitresultsDCEcxm, simulatedCXM, fullsimulatedCXM] = SOLVER_CXM_BOUND_ITERATIONS(obj, aif, aif_all, myo_curves, myo_curves_all, mask, myo_mask, time, time_all, start_index)
             % ---------------------------------------------------------------
             % solve the cxm bound model in an iterative optimization way
             % /::INPUTS::\
@@ -52,11 +52,11 @@ classdef CXM_bound
                                 % return: F, PS, Vp, Ve, rmse, R2
                                 % x0c, F, PS, Vp, Ve
                                 % tempfitDCE = obj.curve_fit(sigin, cp, time, x0c(c,:), obj.lb, obj.ub, 'cxm_bound');
-                                tempfitDCE = obj.curve_fit(sigin, aif, time, x0c(c,:), obj.lb, obj.ub,'2cxm');
+                                tempfitDCE = obj.curve_fit(sigin, aif, time, x0c(c,:), obj.lb, obj.ub,start_index,'2cxm');
                                 if tempfitDCE(end) > Rsqc(c)
                                     % fit success, update
                                     % simulatedCXM(:, i, j) = obj.CXM_BOUND(tempfitDCE(1:4), [time, aif]);
-                                    simulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time', aif']);
+                                    simulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time', aif', repmat(start_index, size(time'))]);
                                     fullsimulatedCXM(:, i, j) = obj.TWO_COMPONENT_EX_MODEL(tempfitDCE(1:4), [time_all', aif_all']);
                                     fitresultsDCEcxm(i, j, :) = tempfitDCE;
                                     Rsqc(c) = tempfitDCE(end);
@@ -93,7 +93,8 @@ classdef CXM_bound
             x0 = varargin{4};
             lb = varargin{5};
             ub = varargin{6};
-            type = varargin{7};
+            start_index = varargin{7};
+            type = varargin{8};
 
             % Make sure all vectors are column, not row
             if size(toi,1) == 1
@@ -107,9 +108,9 @@ classdef CXM_bound
             end
 
             % Make sure data vectors are same size
-            if size(toi,1) ~= size(time,1) || size(toi,1) ~= size(Cp,1) || size(Cp,1) ~= size(time,1)
-                error('dce_mri_fit:toi,Cp,and time vectors must all be same size');
-            end
+            % if size(toi,1) ~= size(time,1) || size(toi,1) ~= size(Cp,1) || size(Cp,1) ~= size(time,1)
+            %     error('dce_mri_fit:toi,Cp,and time vectors must all be same size');
+            % end
 
             % Set options for non-linear LSQ fitting
 
@@ -118,14 +119,15 @@ classdef CXM_bound
 
             S.Algorithm='trust-region-reflective';
             % S.TolFun=1e-3; S.TolX=1e-3;% RY change fitting threshold
-            S.TolFun=1e-6; S.TolX=1e-6;% RY change fitting threshold
+            % S.TolFun=1e-6; S.TolX=1e-6;% RY change fitting threshold
+            S.TolFun=1e-10; S.TolX=1e-10;% RY change fitting threshold
             S.MaxIter=1000;
             % step size
 
 
             if obj.debug
                 S.Display='iter-detailed';
-                S.PlotFcns=["optimplotstepsize"];
+                S.PlotFcns=["optimplotstepsize", "optimplotfval", "optimplotfirstorderopt"];
                 S.OutputFcn = @outfun;
                 history.x = [];
             else
@@ -159,9 +161,9 @@ classdef CXM_bound
                 calculated = obj.CXM_BOUND(B, [time, Cp])
             else
                 AIF = Cp;
-                [B,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(@obj.TWO_COMPONENT_EX_MODEL, x0, [time, AIF], toi, lb, ub, S);
+                [B,resnorm,residual,exitflag,output,lambda,jacobian] = lsqcurvefit(@obj.TWO_COMPONENT_EX_MODEL, x0, [time, AIF, repmat(start_index, size(time))], toi, lb, ub, S);
                 times = linspace(time(1),time(end))';
-                calculated = obj.TWO_COMPONENT_EX_MODEL(B, [time, AIF]);
+                calculated = obj.TWO_COMPONENT_EX_MODEL(B, [time, AIF, repmat(start_index, size(time))]);
             end
             % for debug use
             if obj.debug
@@ -178,9 +180,8 @@ classdef CXM_bound
             pars(3,1)=B(3);    %Vp
             pars(4,1)=B(4);    %Ve
 
-            pred = obj.CXM_BOUND(B, [time, Cp]);
             %pars(5,1)=rsquare(toi,pred);%ry
-            [pars(6,1),pars(5,1)]=obj.rsquare(toi,pred);%ry
+            [pars(6,1),pars(5,1)]=obj.rsquare(toi,calculated);%ry
         end
 
 
@@ -214,6 +215,12 @@ classdef CXM_bound
 
             time = params(:, 1);
             AIF = params(:, 2);
+            s = size(params);
+            if s(2) == 2
+                start_index = 1;
+            else
+                start_index = params(1, 3);
+            end
             time = time';
             AIF = AIF';
             
@@ -221,7 +228,7 @@ classdef CXM_bound
 
             signal = (time(2) - time(1)) * F * ...
                 (E * conv(exp(-km*time), AIF) + (1 - E) * conv(exp(-((km + delta) * time)), AIF));
-            Ctoi = signal(1:length(AIF))';
+            Ctoi = signal(start_index:length(AIF))';
         end
         function Ctoi = CXM_BOUND(beta, params)
             % ---------------------------------------------------------------
